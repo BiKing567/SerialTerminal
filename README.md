@@ -64,17 +64,32 @@
 ### 环境要求
 - macOS 13.0 (Ventura) 或更高版本
 - Xcode 15.0 或更高版本
-- 支持Intel（maybe）与apple silicon
+- 支持 Intel 与 Apple Silicon 芯片
 - [XcodeGen](https://github.com/yonaskolb/XcodeGen) 用于生成项目
 
 ### 安装方法
 
-
 #### 从 Release 下载
 
-1. 从 [Releases]([https://github.com/BiKing567/Seiral-Terminal/releases](https://github.com/BiKing567/Seiral-Terminal/releases)) 下载最新的 `.dmg` 文件
+1. 从 [Releases](https://github.com/BiKing567/Seiral-Terminal/releases) 下载最新的 `.dmg` 文件
 2. 拖动到应用程序文件夹
 3. 启动 SerialTerminal
+
+#### 从源码编译
+
+```bash
+# 克隆仓库
+git clone https://github.com/BiKing567/Seiral-Terminal.git
+cd Seiral-Terminal
+
+# 生成 Xcode 项目
+xcodegen
+
+# 在 Xcode 中打开
+open SerialTerminal.xcodeproj
+
+# 编译运行（在 Xcode 中按 ⌘+R）
+```
 
 ### 首次使用
 
@@ -227,8 +242,8 @@ open SerialTerminal.xcodeproj
 ### 串口未检测到
 - **检查 USB 连接** - 尝试更换 USB 端口
 - **安装驱动** - 部分设备需要安装驱动：
-  - CH340：[驱动下载](http://www.wch.cn/downloads/CH341SER_MAC_ZIP.html)
-  - CP2102：[驱动下载](https://www.silabs.com/developers/usb-to-uart-bridge-vcp-drivers)
+  - CH340：http://www.wch.cn/downloads/CH341SER_MAC_ZIP.html
+  - CP2102：https://www.silabs.com/developers/usb-to-uart-bridge-vcp-drivers
 - **检查权限** - 确保已授予串口访问权限
 
 ### 连接问题
@@ -243,7 +258,22 @@ open SerialTerminal.xcodeproj
 
 ## 📄 许可证
 
-本项目采用 MIT 许可证 - 详见 [LICENSE](LICENSE) 文件。
+本项目采用 **GNU Lesser General Public License v3.0** - 详见 [LICENSE](LICENSE) 文件。
+
+### LGPL v3 许可证说明
+
+LGPL v3 是一个宽松的 copyleft 许可证，主要特点包括：
+
+- ✅ **可以免费使用** - 个人和商业使用均完全免费
+- ✅ **可以嵌入到闭源软件中** - 只要保持 SerialTerminal 库的独立性
+- ✅ **修改需开源** - 如果修改了 SerialTerminal 的源代码，必须发布修改后的版本
+- 📋 **说明要求** - 在使用 LGPL 库的软件中需要明确说明使用了 SerialTerminal
+- 📋 **提供源代码** - 需要提供获取 SerialTerminal 源代码的途径
+
+简单来说：
+- 你可以自由使用 SerialTerminal
+- 如果你修改了 SerialTerminal，需要开源修改后的代码
+- 你可以将 SerialTerminal 集成到闭源软件中（只要保持分离）
 
 ## 🙏 致谢
 
@@ -254,7 +284,6 @@ open SerialTerminal.xcodeproj
 ## 📬 联系方式
 
 - **GitHub Issues**：[报告问题或请求功能](https://github.com/BiKing567/Seiral-Terminal/issues)
-
 
 ## 📊 项目统计
 
