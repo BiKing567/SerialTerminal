@@ -11,11 +11,11 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/yourusername/SerialTerminal/releases">
-    <img src="https://img.shields.io/github/v/release/yourusername/SerialTerminal?style=flat-square" alt="版本">
+  <a href="https://github.com/BiKing567/Seiral-Terminal/releases">
+    <img src="https://img.shields.io/github/v/release/BiKing567/Seiral-Terminal?style=flat-square" alt="版本">
   </a>
-  <a href="https://github.com/yourusername/SerialTerminal/blob/main/LICENSE">
-    <img src="https://img.shields.io/github/license/yourusername/SerialTerminal?style=flat-square" alt="许可证">
+  <a href="https://github.com/BiKing567/Seiral-Terminal/blob/main/LICENSE">
+    <img src="https://img.shields.io/github/license/BiKing567/Seiral-Terminal?style=flat-square" alt="许可证">
   </a>
   <a href="https://swift.org">
     <img src="https://img.shields.io/badge/Swift-5.9-orange?style=flat-square" alt="Swift">
@@ -72,7 +72,7 @@
 
 #### 从 Release 下载
 
-1. 从 [Releases]([https://github.com/yourusername/SerialTerminal/releases](https://github.com/BiKing567/Seiral-Terminal/releases)) 下载最新的 `.dmg` 文件
+1. 从 [Releases]([https://github.com/BiKing567/Seiral-Terminal/releases](https://github.com/BiKing567/Seiral-Terminal/releases)) 下载最新的 `.dmg` 文件
 2. 拖动到应用程序文件夹
 3. 启动 SerialTerminal
 
@@ -253,15 +253,15 @@ open SerialTerminal.xcodeproj
 
 ## 📬 联系方式
 
-- **GitHub Issues**：[报告问题或请求功能](https://github.com/BiKing567/SerialTerminal/issues)
+- **GitHub Issues**：[报告问题或请求功能](https://github.com/BiKing567/Seiral-Terminal/issues)
 
 
 ## 📊 项目统计
 
 <p align="center">
-  <img src="https://img.shields.io/github/downloads/yourusername/SerialTerminal/total?style=flat-square" alt="下载量">
-  <img src="https://img.shields.io/github/stars/yourusername/SerialTerminal?style=flat-square" alt="星标">
-  <img src="https://img.shields.io/github/forks/yourusername/SerialTerminal?style=flat-square" alt="分支">
+  <img src="https://img.shields.io/github/downloads/BiKing567/Seiral-Terminal/total?style=flat-square" alt="下载量">
+  <img src="https://img.shields.io/github/stars/BiKing567/Seiral-Terminal?style=flat-square" alt="星标">
+  <img src="https://img.shields.io/github/forks/BiKing567/Seiral-Terminal?style=flat-square" alt="分支">
 </p>
 
 ---
