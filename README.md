@@ -68,21 +68,6 @@
 
 ### 安装方法
 
-#### 从源码编译
-
-```bash
-# 克隆仓库
-git clone https://github.com/yourusername/SerialTerminal.git
-cd SerialTerminal
-
-# 生成 Xcode 项目
-xcodegen
-
-# 在 Xcode 中打开
-open SerialTerminal.xcodeproj
-
-# 编译运行（在 Xcode 中按 ⌘+R）
-```
 
 #### 从 Release 下载
 
