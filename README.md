@@ -11,11 +11,11 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/yourusername/SerialTerminal/releases">
-    <img src="https://img.shields.io/github/v/release/yourusername/SerialTerminal?style=flat-square" alt="版本">
+  <a href="https://github.com/BiKing567/Seiral-Terminal/releases">
+    <img src="https://img.shields.io/github/v/release/BiKing567/Seiral-Terminal?style=flat-square" alt="版本">
   </a>
-  <a href="https://github.com/yourusername/SerialTerminal/blob/main/LICENSE">
-    <img src="https://img.shields.io/github/license/yourusername/SerialTerminal?style=flat-square" alt="许可证">
+  <a href="https://github.com/BiKing567/Seiral-Terminal/blob/main/LICENSE">
+    <img src="https://img.shields.io/github/license/BiKing567/Seiral-Terminal?style=flat-square" alt="许可证">
   </a>
   <a href="https://swift.org">
     <img src="https://img.shields.io/badge/Swift-5.9-orange?style=flat-square" alt="Swift">
@@ -64,16 +64,23 @@
 ### 环境要求
 - macOS 13.0 (Ventura) 或更高版本
 - Xcode 15.0 或更高版本
+- 支持 Intel 与 Apple Silicon 芯片
 - [XcodeGen](https://github.com/yonaskolb/XcodeGen) 用于生成项目
 
 ### 安装方法
+
+#### 从 Release 下载
+
+1. 从 [Releases](https://github.com/BiKing567/Seiral-Terminal/releases) 下载最新的 `.dmg` 文件
+2. 拖动到应用程序文件夹
+3. 启动 SerialTerminal
 
 #### 从源码编译
 
 ```bash
 # 克隆仓库
-git clone https://github.com/yourusername/SerialTerminal.git
-cd SerialTerminal
+git clone https://github.com/BiKing567/Seiral-Terminal.git
+cd Seiral-Terminal
 
 # 生成 Xcode 项目
 xcodegen
@@ -83,12 +90,6 @@ open SerialTerminal.xcodeproj
 
 # 编译运行（在 Xcode 中按 ⌘+R）
 ```
-
-#### 从 Release 下载
-
-1. 从 [Releases](https://github.com/yourusername/SerialTerminal/releases) 下载最新的 `.app` 文件
-2. 拖动到应用程序文件夹
-3. 启动 SerialTerminal
 
 ### 首次使用
 
@@ -241,8 +242,8 @@ open SerialTerminal.xcodeproj
 ### 串口未检测到
 - **检查 USB 连接** - 尝试更换 USB 端口
 - **安装驱动** - 部分设备需要安装驱动：
-  - CH340：[驱动下载](http://www.wch.cn/downloads/CH341SER_MAC_ZIP.html)
-  - CP2102：[驱动下载](https://www.silabs.com/developers/usb-to-uart-bridge-vcp-drivers)
+  - CH340：http://www.wch.cn/downloads/CH341SER_MAC_ZIP.html
+  - CP2102：https://www.silabs.com/developers/usb-to-uart-bridge-vcp-drivers
 - **检查权限** - 确保已授予串口访问权限
 
 ### 连接问题
@@ -257,7 +258,22 @@ open SerialTerminal.xcodeproj
 
 ## 📄 许可证
 
-本项目采用 MIT 许可证 - 详见 [LICENSE](LICENSE) 文件。
+本项目采用 **GNU Lesser General Public License v3.0** - 详见 [LICENSE](LICENSE) 文件。
+
+### LGPL v3 许可证说明
+
+LGPL v3 是一个宽松的 copyleft 许可证，主要特点包括：
+
+- ✅ **可以免费使用** - 个人和商业使用均完全免费
+- ✅ **可以嵌入到闭源软件中** - 只要保持 SerialTerminal 库的独立性
+- ✅ **修改需开源** - 如果修改了 SerialTerminal 的源代码，必须发布修改后的版本
+- 📋 **说明要求** - 在使用 LGPL 库的软件中需要明确说明使用了 SerialTerminal
+- 📋 **提供源代码** - 需要提供获取 SerialTerminal 源代码的途径
+
+简单来说：
+- 你可以自由使用 SerialTerminal
+- 如果你修改了 SerialTerminal，需要开源修改后的代码
+- 你可以将 SerialTerminal 集成到闭源软件中（只要保持分离）
 
 ## 🙏 致谢
 
@@ -267,15 +283,14 @@ open SerialTerminal.xcodeproj
 
 ## 📬 联系方式
 
-- **GitHub Issues**：[报告问题或请求功能](https://github.com/yourusername/SerialTerminal/issues)
-- **电子邮件**：your.email@example.com
+- **GitHub Issues**：[报告问题或请求功能](https://github.com/BiKing567/Seiral-Terminal/issues)
 
 ## 📊 项目统计
 
 <p align="center">
-  <img src="https://img.shields.io/github/downloads/yourusername/SerialTerminal/total?style=flat-square" alt="下载量">
-  <img src="https://img.shields.io/github/stars/yourusername/SerialTerminal?style=flat-square" alt="星标">
-  <img src="https://img.shields.io/github/forks/yourusername/SerialTerminal?style=flat-square" alt="分支">
+  <img src="https://img.shields.io/github/downloads/BiKing567/Seiral-Terminal/total?style=flat-square" alt="下载量">
+  <img src="https://img.shields.io/github/stars/BiKing567/Seiral-Terminal?style=flat-square" alt="星标">
+  <img src="https://img.shields.io/github/forks/BiKing567/Seiral-Terminal?style=flat-square" alt="分支">
 </p>
 
 ---
