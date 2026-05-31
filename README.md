@@ -11,11 +11,13 @@
 </p>
 
 <p align="center">
+ 
   <a href="https://github.com/BiKing567/Seiral-Terminal/releases">
-    <img src="https://img.shields.io/github/v/release/BiKing567/Seiral-Terminal?style=flat-square" alt="版本">
+    <img src="https://img.shields.io/github/v/release/BiKing567/Seiral-Terminal?include_prereleases&style=flat-square" alt="版本">
   </a>
+
   <a href="https://github.com/BiKing567/Seiral-Terminal/blob/main/LICENSE">
-    <img src="https://img.shields.io/github/license/BiKing567/Seiral-Terminal?style=flat-square" alt="许可证">
+    <img src="https://img.shields.io/badge/License-LGPL%202.1-blue?style=flat-square" alt="许可证">
   </a>
   <a href="https://swift.org">
     <img src="https://img.shields.io/badge/Swift-5.9-orange?style=flat-square" alt="Swift">
