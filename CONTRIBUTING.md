@@ -1,226 +1,226 @@
-# Contributing to SerialTerminal
+# 贡献指南
 
-Thank you for your interest in contributing to SerialTerminal! This document provides guidelines and instructions for contributing.
+感谢你对 SerialTerminal 项目的兴趣！本文档提供了贡献的指导说明。
 
-## 🎯 Ways to Contribute
+## 🎯 贡献方式
 
-### 🐛 Reporting Bugs
-- Check if the bug has already been reported in [Issues](https://github.com/yourusername/SerialTerminal/issues)
-- Use the bug report template when creating a new issue
-- Include:
-  - macOS version
-  - Xcode version
-  - Device/board information
-  - Steps to reproduce
-  - Expected vs actual behavior
-  - Relevant logs or screenshots
+### 🐛 报告问题
+- 在 [Issues](https://github.com/yourusername/SerialTerminal/issues) 中检查该问题是否已被报告
+- 使用问题报告模板创建新的 issue
+- 请包含：
+  - macOS 版本
+  - Xcode 版本
+  - 设备/开发板信息
+  - 复现步骤
+  - 期望行为 vs 实际行为
+  - 相关日志或截图
 
-### 💡 Suggesting Features
-- Check existing [feature requests](https://github.com/yourusername/SerialTerminal/issues?q=is%3Aissue+is%3Aopen+label%3Aenhancement)
-- Use the feature request template
-- Describe the use case and motivation
-- Explain how it would benefit users
+### 💡 建议功能
+- 检查已有的 [功能请求](https://github.com/yourusername/SerialTerminal/issues?q=is%3Aissue+is%3Aopen+label%3Aenhancement)
+- 使用功能请求模板
+- 描述使用场景和动机
+- 解释它如何让用户受益
 
-### 🔧 Pull Requests
+### 🔧 提交代码（Pull Requests）
 
-#### Before Starting
-1. **Check existing issues** - Avoid duplicate work
-2. **Fork the repository** - Create your own copy
-3. **Create a branch** - Use descriptive naming:
+#### 开始之前
+1. **检查现有 issues** - 避免重复工作
+2. **Fork 仓库** - 创建你自己的副本
+3. **创建分支** - 使用描述性的命名：
    - `feature/hex-display`
    - `bugfix/connection-timeout`
    - `docs/update-readme`
 
-#### Development Setup
+#### 开发环境搭建
 
 ```bash
-# 1. Fork the repository on GitHub
+# 1. 在 GitHub 上 Fork 仓库
 
-# 2. Clone your fork
+# 2. 克隆你的 Fork
 git clone https://github.com/YOUR_USERNAME/SerialTerminal.git
 cd SerialTerminal
 
-# 3. Add upstream remote
+# 3. 添加上游仓库
 git remote add upstream https://github.com/yourusername/SerialTerminal.git
 
-# 4. Create a feature branch
+# 4. 创建功能分支
 git checkout -b feature/your-feature-name
 
-# 5. Generate Xcode project
+# 5. 生成 Xcode 项目
 xcodegen
 
-# 6. Open in Xcode
+# 6. 用 Xcode 打开
 open SerialTerminal.xcodeproj
 ```
 
-#### Making Changes
+#### 进行修改
 
-1. **Code Style**
-   - Follow Swift API Design Guidelines
-   - Use meaningful variable and function names
-   - Add comments for complex logic
-   - Keep functions small and focused
+1. **代码风格**
+   - 遵循 Swift API 设计指南
+   - 使用有意义的变量和函数名称
+   - 为复杂逻辑添加注释
+   - 保持函数小而专注
 
-2. **Swift Style Guidelines**
+2. **Swift 风格指南**
    ```swift
-   // ✅ Good
+   // ✅ 好的写法
    func connect(to port: SerialPortInfo) {
        serialManager.connect(to: port)
    }
    
-   // ❌ Avoid
+   // ❌ 避免这样写
    func connect(port: SerialPortInfo) {
        manager.connect(port)
    }
    ```
 
-3. **Documentation**
-   - Update README.md for new features
-   - Add inline comments for complex code
-   - Document public interfaces
+3. **文档**
+   - 为新功能更新 README.md
+   - 为复杂代码添加内联注释
+   - 文档化公开接口
 
-#### Testing
+#### 测试
 
 ```bash
-# Run tests in Xcode
-# Use ⌘+U or Product > Test
+# 在 Xcode 中运行测试
+# 使用 ⌘+U 或 Product > Test
 
-# Test manually:
-# 1. Connect a device (Arduino/STM32)
-# 2. Verify basic functionality:
-#    - Port detection
-#    - Connection/disconnection
-#    - Data transmission
-#    - Display modes
+# 手动测试：
+# 1. 连接设备（Arduino/STM32）
+# 2. 验证基本功能：
+#    - 端口检测
+#    - 连接/断开
+#    - 数据传输
+#    - 显示模式
 ```
 
-#### Commit Guidelines
+#### 提交规范
 
-- Use clear, descriptive commit messages
-- Start with a verb (Add, Fix, Update, Remove)
-- Keep commits focused and atomic
+- 使用清晰、描述性的提交信息
+- 以动词开头（Add、Fix、Update、Remove）
+- 保持提交专注且原子化
 
 ```bash
-# Examples
+# 示例
 git commit -m "Add HEX input mode for raw data transmission"
 git commit -m "Fix connection timeout issue on macOS 14"
 git commit -m "Improve message buffering to reduce display flicker"
 git commit -m "Update baud rate dropdown to include 460800"
 ```
 
-#### Pull Request Process
+#### Pull Request 流程
 
-1. **Keep PRs focused** - One feature or fix per PR
-2. **Update documentation** - Include usage examples
-3. **Test thoroughly** - Manual testing on real hardware
-4. **Follow template** - Use PR template (auto-generated)
+1. **保持 PR 专注** - 每个 PR 只包含一个功能或修复
+2. **更新文档** - 包含使用示例
+3. **充分测试** - 在真实硬件上进行手动测试
+4. **遵循模板** - 使用自动生成的 PR 模板
 
 ```markdown
-## Description
-Brief description of changes
+## 描述
+变更的简要描述
 
-## Type of Change
-- [ ] Bug fix (non-breaking change)
-- [ ] New feature (non-breaking change)
-- [ ] Documentation update
-- [ ] Code refactoring
+## 变更类型
+- [ ] Bug 修复（非破坏性变更）
+- [ ] 新功能（非破坏性变更）
+- [ ] 文档更新
+- [ ] 代码重构
 
-## Testing
-- [ ] Unit tests added/updated
-- [ ] Manual testing performed
-- [ ] Tested on real hardware
+## 测试
+- [ ] 添加/更新了单元测试
+- [ ] 进行了手动测试
+- [ ] 在真实硬件上测试
 
-## Checklist
-- [ ] Code follows project style guidelines
-- [ ] Self-review completed
-- [ ] Comments added for complex code
-- [ ] Documentation updated
+## 检查清单
+- [ ] 代码遵循项目风格指南
+- [ ] 完成了自我审查
+- [ ] 为复杂代码添加了注释
+- [ ] 文档已更新
 ```
 
-## 🏗️ Project Structure
+## 🏗️ 项目结构
 
 ```
 SerialTerminal/
-├── main.swift              # Entry point
-├── AppDelegate.swift       # App lifecycle
-├── ContentView.swift       # UI components
-├── SerialPortManager.swift # Core serial logic
-└── Assets.xcassets/        # Icons and resources
+├── main.swift              # 程序入口
+├── AppDelegate.swift       # 应用生命周期
+├── ContentView.swift       # UI 组件
+├── SerialPortManager.swift # 核心串口逻辑
+└── Assets.xcassets/        # 图标和资源
 ```
 
-## 🐛 Testing Guidelines
+## 🐛 测试指南
 
-### Manual Testing Checklist
+### 手动测试清单
 
-When adding features, test:
+添加功能时，请测试：
 
-- [ ] Serial port detection
-- [ ] Connection with different baud rates
-- [ ] Data transmission (TX)
-- [ ] Data reception (RX)
-- [ ] ASCII display mode
-- [ ] HEX display mode
-- [ ] Combined display mode
-- [ ] Timestamps toggle
-- [ ] Auto-scroll toggle
-- [ ] Message clearing
-- [ ] Session logging
-- [ ] Settings persistence
-- [ ] Dark mode compatibility
+- [ ] 串口检测
+- [ ] 使用不同波特率连接
+- [ ] 数据发送（TX）
+- [ ] 数据接收（RX）
+- [ ] ASCII 显示模式
+- [ ] HEX 显示模式
+- [ ] 混合显示模式
+- [ ] 时间戳开关
+- [ ] 自动滚动开关
+- [ ] 清空消息
+- [ ] 会话日志
+- [ ] 设置持久化
+- [ ] 深色模式兼容性
 
-### Hardware Testing
+### 硬件测试
 
-Test with multiple devices:
+使用多种设备测试：
 - [ ] Arduino Uno/Nano
-- [ ] STM32F103 (Blue Pill)
+- [ ] STM32F103（Blue Pill）
 - [ ] STM32F4xx
 - [ ] ESP32/ESP8266
-- [ ] CH340-based devices
-- [ ] CP2102-based devices
+- [ ] 基于 CH340 的设备
+- [ ] 基于 CP2102 的设备
 
-## 📝 Documentation
+## 📝 文档
 
-### Updating Documentation
+### 更新文档
 
-- **README.md** - Main documentation
-- **Code comments** - Inline documentation
-- **Issue descriptions** - Bug and feature details
+- **README.md** - 主要文档
+- **代码注释** - 内联文档
+- **Issue 描述** - 问题和功能详情
 
-### Documentation Style
+### 文档风格
 
-- Use clear, concise language
-- Include code examples where appropriate
-- Add screenshots for UI changes
-- Explain the "why" not just the "what"
+- 使用清晰、简洁的语言
+- 适当包含代码示例
+- 为 UI 变化添加截图
+- 解释"为什么"而不只是"是什么"
 
-## 🔍 Code Review Process
+## 🔍 代码审查流程
 
-All submissions require review. We use GitHub pull requests for this purpose.
+所有提交都需要审查。我们使用 GitHub pull requests 进行此操作。
 
-Review criteria:
-- Code quality and style
-- Test coverage
-- Documentation completeness
-- Compatibility
-- Performance impact
+审查标准：
+- 代码质量和风格
+- 测试覆盖率
+- 文档完整性
+- 兼容性
+- 性能影响
 
-## 🚀 Release Process
+## 🚀 发布流程
 
-1. Version bump (semantic versioning)
-2. Update CHANGELOG.md
-3. Create GitHub release
-4. Build and attach .app file
-5. Announce (if applicable)
+1. 版本升级（语义化版本）
+2. 更新 CHANGELOG.md
+3. 创建 GitHub 发布
+4. 构建并附加 .app 文件
+5. 发布公告（如适用）
 
-## 📧 Contact
+## 📧 联系方式
 
-- **Issues**: [GitHub Issues](https://github.com/yourusername/SerialTerminal/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/yourusername/SerialTerminal/discussions)
+- **问题**: [GitHub Issues](https://github.com/yourusername/SerialTerminal/issues)
+- **讨论**: [GitHub Discussions](https://github.com/yourusername/SerialTerminal/discussions)
 
-## 📄 License
+## 📄 许可证
 
-By contributing, you agree that your contributions will be licensed under the MIT License.
+通过贡献，你同意你的贡献将根据 MIT 许可证进行许可。
 
 ---
 
-Thank you for contributing! 🎉
+感谢你的贡献！🎉
