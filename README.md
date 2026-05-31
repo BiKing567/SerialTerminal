@@ -64,6 +64,7 @@
 ### 环境要求
 - macOS 13.0 (Ventura) 或更高版本
 - Xcode 15.0 或更高版本
+- 支持Intel（maybe）与apple silicon
 - [XcodeGen](https://github.com/yonaskolb/XcodeGen) 用于生成项目
 
 ### 安装方法
@@ -71,7 +72,7 @@
 
 #### 从 Release 下载
 
-1. 从 [Releases](https://github.com/yourusername/SerialTerminal/releases) 下载最新的 `.app` 文件
+1. 从 [Releases]([https://github.com/yourusername/SerialTerminal/releases](https://github.com/BiKing567/Seiral-Terminal/releases)) 下载最新的 `.dmg` 文件
 2. 拖动到应用程序文件夹
 3. 启动 SerialTerminal
 
@@ -252,8 +253,8 @@ open SerialTerminal.xcodeproj
 
 ## 📬 联系方式
 
-- **GitHub Issues**：[报告问题或请求功能](https://github.com/yourusername/SerialTerminal/issues)
-- **电子邮件**：your.email@example.com
+- **GitHub Issues**：[报告问题或请求功能](https://github.com/BiKing567/SerialTerminal/issues)
+
 
 ## 📊 项目统计
 
