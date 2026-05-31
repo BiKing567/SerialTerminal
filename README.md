@@ -12,11 +12,11 @@
 
 <p align="center">
  
-  <a href="https://github.com/BiKing567/Seiral-Terminal/releases">
-    <img src="https://img.shields.io/github/v/release/BiKing567/Seiral-Terminal?include_prereleases&style=flat-square" alt="版本">
+  <a href="https://github.com/BiKing567/SerialTerminal/releases">
+    <img src="https://img.shields.io/github/v/release/BiKing567/SerialTerminal?include_prereleases&style=flat-square" alt="版本">
   </a>
 
-  <a href="https://github.com/BiKing567/Seiral-Terminal/blob/main/LICENSE">
+  <a href="https://github.com/BiKing567/SerialTerminal/blob/main/LICENSE">
     <img src="https://img.shields.io/badge/License-LGPL%202.1-blue?style=flat-square" alt="许可证">
   </a>
   <a href="https://swift.org">
@@ -73,7 +73,7 @@
 
 #### 从 Release 下载
 
-1. 从 [Releases](https://github.com/BiKing567/Seiral-Terminal/releases) 下载最新的 `.dmg` 文件
+1. 从 [Releases](https://github.com/BiKing567/SerialTerminal/releases) 下载最新的 `.dmg` 文件
 2. 拖动到应用程序文件夹
 3. 启动 SerialTerminal
 
@@ -81,8 +81,8 @@
 
 ```bash
 # 克隆仓库
-git clone https://github.com/BiKing567/Seiral-Terminal.git
-cd Seiral-Terminal
+git clone https://github.com/BiKing567/SerialTerminal.git
+cd SerialTerminal
 
 # 生成 Xcode 项目
 xcodegen
@@ -285,14 +285,14 @@ LGPL v3 是一个宽松的 copyleft 许可证，主要特点包括：
 
 ## 📬 联系方式
 
-- **GitHub Issues**：[报告问题或请求功能](https://github.com/BiKing567/Seiral-Terminal/issues)
+- **GitHub Issues**：[报告问题或请求功能](https://github.com/BiKing567/SerialTerminal/issues)
 
 ## 📊 项目统计
 
 <p align="center">
-  <img src="https://img.shields.io/github/downloads/BiKing567/Seiral-Terminal/total?style=flat-square" alt="下载量">
-  <img src="https://img.shields.io/github/stars/BiKing567/Seiral-Terminal?style=flat-square" alt="星标">
-  <img src="https://img.shields.io/github/forks/BiKing567/Seiral-Terminal?style=flat-square" alt="分支">
+  <img src="https://img.shields.io/github/downloads/BiKing567/SerialTerminal/total?style=flat-square" alt="下载量">
+  <img src="https://img.shields.io/github/stars/BiKing567/SerialTerminal?style=flat-square" alt="星标">
+  <img src="https://img.shields.io/github/forks/BiKing567/SerialTerminal?style=flat-square" alt="分支">
 </p>
 
 ---
