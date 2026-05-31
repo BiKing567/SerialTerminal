@@ -1,21 +1,341 @@
-MIT License
+GNU LESSER GENERAL PUBLIC LICENSE
+Version 3, 29 June 2007
 
-Copyright (c) 2024 SerialTerminal Contributors
+Copyright (C) 2007 Free Software Foundation, Inc. <https://fsf.org/>
+Everyone is permitted to copy and distribute copies of this License
+Policy, but changing it is not allowed.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+  This version of the GNU Lesser General Public License incorporates
+the terms and conditions of version 3 of the GNU General Public
+License, supplemented by the additional permissions listed below.
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+                            Preamble
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+  The GNU General Public License is a free, copyleft license for
+software and other kinds of works.
+
+  The GNU Lesser General Public License is a softer form of the GNU
+General Public License. It provides programmers less restrictive
+freedom than the full GNU GPL. For more details, see the GNU Lesser
+General Public License at <https://www.gnu.org/licenses/lgpl-3.0.html>.
+
+  As a special exception, the copyright holders of this library give
+you permission to link this library with independent modules to
+produce an executable, regardless of the license terms of these
+independent modules, and to copy and distribute the resulting
+executable under terms of your choice, provided that you also meet,
+for each linked independent module, the terms and conditions of
+the license of that module.  An independent module is a module
+which is not derived from or based on this library.  For example, you
+may convey a combined work in a manner that separates modules of this
+library from other proprietary code while the library itself is
+engaged in the production or use of an executable.  However, as a
+special exception, the source code of the combined work need not be
+released under this License as long as the object code linked with
+the library contains no symbols from the library's source code at
+link time, or you include the library's source code with the object
+code of the program that uses the library.
+
+  The precise terms and conditions for copying, distribution and
+modification follow.
+
+                       TERMS AND CONDITIONS
+
+  0. Additional Definitions.
+
+  As used herein, "this Library" refers to the function or
+distribution of this software by the copyright holder or by an
+individual or Legal Entity authorized to distribute this software.
+A "based on" the Library means that the Library is incorporated
+in or linked with a program that is not a derivative of the Library.
+
+  "Source code" for a work means the preferred form of the work for
+making modifications to it.  "Object code" means any non-source
+form of a work.
+
+  A "Standard Interface" means an interface that either is an official
+standard defined by a recognized standards body, or, in the case of
+interfaces specified for a particular programming language, one that
+is widely used among developers working in that language.
+
+  The "System Libraries" of an executable work include anything, other
+than the work as a whole, that (a) is included in the normal form of
+packaging a Major Component, but which is not part of that Major
+Component, and (b) serves only to enable use of the work with that
+Major Component, or to implement a Standard Interface for which an
+implementation is available to the public in source code form.  A
+"Major Component", in this context, means a major essential component
+(kernel, window system, and so on) of the specific operating system
+(if any) on which the executable work runs, or a compiler used to
+produce the work, or an object code interpreter used to run it.
+
+  The "Corresponding Source" for a work in object code form means all
+the source code needed to generate, install, and (for an executable
+work) run the object code and to modify the work, including scripts to
+control those activities.
+
+  The Corresponding Source need not include anything that users
+can regenerate automatically from other parts of the Corresponding
+Source.
+
+  The Corresponding Source for a work in source code form is that
+same work.
+
+  1. Exception to Section 3 of the GNU GPL.
+
+  "Covered software" means the "Program" as defined in the GNU GPL
+version 3.  You may convey covered works under Section 3 of the GNU
+GPL in specific circumstances as described below.
+
+  You may convey a covered work in object code form under the terms
+of sections 4 and 5, provided that you also convey the
+machine-readable Corresponding Source under the terms of this License,
+in one of these ways:
+
+    a) Convey the object code in, or embodied in, a physical product
+    (including a physical distribution medium), accompanied by the
+    Corresponding Source fixed on a durable physical medium
+    customarily used for software interchange.
+
+    b) Convey the object code in, or embodied in, a physical product
+    (including a physical distribution medium), accompanied by a written
+    offer, valid for at least three years and valid for as long as you
+    offer spare parts or customer support for that product model, to
+    give anyone who possesses the object code either (1) a copy of the
+    Corresponding Source for all the software in the product that is
+    covered by this License, on a durable physical medium
+    customarily used for software interchange, for a price no more than
+    your reasonable cost of physically performing this conveying of
+    source, or (2) access to copy the
+    Corresponding Source from a network server at no charge.
+
+    c) Convey individual copies of the object code with a copy of the
+    written offer to provide the Corresponding Source.  This
+    alternative is allowed only occasionally and noncommercially, and
+    only if you received the object code with such an offer, in accord
+    with subsection 6b.
+
+    d) Convey the object code by offering access from a designated
+    place (gratis or for a charge), and offer equivalent access to the
+    Corresponding Source in the same way through the same place at no
+    further charge.  You need not require recipients to copy the
+    Corresponding Source along with the object code.  You may charge a
+    fee for the act of making a copy of the object code, and you may
+    offer a warranty for a fee.
+
+    e) Convey the object code using peer-to-peer transmission, provided
+    you inform other peers where the object code and Corresponding
+    Source of the work are being offered to the general public at no
+    charge under subsection 6d.
+
+  2. Conveying Modified Source Versions.
+
+  You may convey a work based on the Library, or the modifications to
+produce it from the Library, in the form of source code under the
+terms of section 4, provided that you also meet all of these conditions:
+
+    a) The work must carry prominent notices stating that you modified
+    it, and giving a relevant date.
+
+    b) The work must carry prominent notices stating that it is
+    released under this License and any conditions added under section
+    7.  This requirement modifies the requirement in section 4 to
+    "keep intact all notices".
+
+    c) You must license the entire work, as a whole, under this
+    License to anyone who comes into possession of a copy.  This
+    License will therefore apply, along with any applicable section 7
+    additional terms, to the whole of the work, and all its parts,
+    regardless of how they are packaged.  This License gives no
+    permission to license the work in any other way, but it does not
+    invalidate such permission if you have separately received it.
+
+    d) If the work has interactive user interfaces, each must display
+    Appropriate Legal Notices; however, if the Program has interactive
+    interfaces that do not display Appropriate Legal Notices, your
+    work need not make them do so.
+
+  A compilation of a covered work with other separate and independent
+works, which are not by their nature extensions of the covered work,
+and which are not combined with it such as to form a larger program,
+in or on a volume of a storage or distribution medium, is called an
+"aggregate" if the compilation and its resulting copyright are not
+used to limit the access or legal rights of the compilation's users
+beyond what the individual works permit.  Inclusion of a covered work
+in an aggregate does not cause this License to apply to the other
+parts of the aggregate.
+
+  3. Combining or Linking the Library with Other Code.
+
+  The "library" of which you have a copy (or have the right to use)
+is called the "Library".  This Library may be combined with programs
+that are not covered by this License (called "non-Library programs") to
+produce a program containing portions of the Library, and to distribute
+that program under the terms of your choice.
+
+  The following sections apply when you link the Library with other
+code.  "Linking" means creating a single program containing the
+Library, or including portions of the Library in a program that is
+not itself a work to which the Library applies.
+
+  a) Combined Works.
+
+  You may convey a "combined work" (a single program containing the
+Library plus portions of other programs that use the Library).  A
+"combined work" is not itself covered by this License; instead, the
+terms of this License apply to the combined work as a whole.  The
+combined work is not a derivative of the Library.
+
+  If a portion of the combined work is not covered by this License
+(the combined work includes non-Library programs), then the terms of
+section 7 of this License apply to the combined work as a whole.
+In particular, you may satisfy the requirements of this License for
+the combined work by distributing the combined work under the terms
+of a license of your choice, provided that you also distribute the
+Library in object code form, under the terms of this License, and
+you do not limit the recipients of the combined work to those who
+receive the object code form.
+
+  b) Conveying the Combined Work.
+
+  When the combined work is distributed, you must cause the entire
+combined work to be treated as if it were covered by this License,
+except as follows:
+
+    i) The combined work need not contain anything that can be
+    extracted from the Library itself, except for the Library's
+    interface to the rest of the combined work.
+
+    ii) The combined work as a whole is subject to the requirements
+    of section 7 of this License.
+
+    iii) The combined work must include the Library, or a copy of it,
+    in the combined work's object code form, or include a reference
+    to the Library, or include a pointer to the Library.
+
+    iv) You must cause the combined work to do the following:
+
+      - Maintain notices required by section 7 of this License.
+
+      - Treat the entire combined work as a covered work under this
+      License.
+
+      - Ensure that the combined work provides the Library with a
+      reference to the Library's interface, rather than including
+      the Library's implementation.
+
+      - Ensure that the combined work provides the Library's
+      interface to the user, rather than including the Library's
+      implementation.
+
+      - Ensure that the combined work provides the Library's
+      interface to the user in the same manner as if the user had
+      obtained the Library separately.
+
+  c) Distribution of the Combined Work.
+
+  When you distribute the combined work, you must include the source
+code for the Library with the combined work, as specified in section 6
+of this License, or a reference to the Library.  If the combined work
+includes the Library's object code, you must also include the object
+code for the Library.
+
+  d) Lgpl Incompatibility.
+
+  If you choose to distribute the combined work under a different
+license (such as the GPL), you must also distribute the Library's
+source code.  This is because the LGPL requires that the Library's
+source code be available for modification.
+
+  4. Revised Versions of the GNU Lesser GPL.
+
+  The Free Software Foundation may publish revised and/or new versions
+of the GNU Lesser General Public License from time to time.  Such new
+versions will be similar in spirit to the present version, but may
+differ in detail to address new problems or concerns.
+
+  Each version is given a distinguishing version number.  If the
+Library specifies that a certain numbered version of the GNU Lesser
+General Public License "or any later version" applies to it, you have
+the option of following the terms and conditions either of that
+numbered version or of any later version published by the Free
+Software Foundation.  If the Library does not specify a version number
+of the GNU Lesser General Public License, you may choose any version
+ever published by the Free Software Foundation.
+
+  If the Library specifies that a proxy can decide which future
+versions of the GNU Lesser General Public License can be used, that
+proxy's public statement of acceptance of a version permanently
+authorizes you to choose that version for the Library.
+
+  5. Disclaimer of Warranty.
+
+  THIS LIBRARY IS PROVIDED UNDER THE TERMS OF THIS LGPL LICENSE.
+
+  THERE IS NO WARRANTY FOR THIS LIBRARY, TO THE EXTENT PERMITTED BY
+APPLICABLE LAW.  EXCEPT WHEN OTHERWISE STATED IN WRITING THE COPYRIGHT
+HOLDERS AND/OR OTHER PARTIES PROVIDE THE LIBRARY "AS IS" WITHOUT
+WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED, INCLUDING, BUT NOT
+LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+A PARTICULAR PURPOSE.  THE ENTIRE RISK AS TO THE QUALITY AND PERFORMANCE
+OF THE LIBRARY IS WITH YOU.  SHOULD THE LIBRARY PROVE DEFECTIVE, YOU
+ASSUME THE COST OF ALL NECESSARY SERVICING, REPAIR OR CORRECTION.
+
+  6. Limitation of Liability.
+
+  IN NO EVENT UNLESS REQUIRED BY APPLICABLE LAW OR AGREED TO IN
+WRITING WILL ANY COPYRIGHT HOLDER, OR ANY OTHER PARTY WHO MODIFIES
+AND/OR CONVEYS THE LIBRARY AS PERMITTED ABOVE, BE LIABLE TO YOU FOR
+DAMAGES, INCLUDING ANY GENERAL, SPECIAL, INCIDENTAL OR CONSEQUENTIAL
+DAMAGES ARISING OUT OF THE USE OR INABILITY TO USE THE LIBRARY
+(INCLUDING BUT NOT LIMITED TO LOSS OF DATA OR DATA BEING RENDERED
+INACCURATE OR LOSSES SUSTAINED BY YOU OR THIRD PARTIES OR A FAILURE
+OF THE LIBRARY TO OPERATE WITH ANY OTHER PROGRAMS), EVEN IF SUCH
+HOLDER OR OTHER PARTY HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH
+DAMAGES.
+
+                     END OF TERMS AND CONDITIONS
+
+            How to Apply These Terms to Your New Programs
+
+  If you develop a new library, and you want it to be of the greatest
+possible use to the public, we recommend making it free software that
+everyone can redistribute and change.  You can do so by permitting
+redistribution under these terms.
+
+  To apply these terms, attach the following notices to the library.
+  It is safest to attach them to the start of each source file to
+most effectively state the exclusion of warranty; and each file should
+have at least the "copyright" line and a pointer to where the full
+notice is found.
+
+    <one line to give the library's name and a brief idea of what it does.>
+    Copyright (C) 2026 SerialTerminal Contributors
+
+    This library is free software; you can redistribute it and/or modify
+    it under the terms of the GNU Lesser General Public License as
+    published by the Free Software Foundation; either version 3 of the
+    License, or (at your option) any later version.
+
+    This library is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    Lesser General Public License for more details.
+
+    You should have received a copy of the GNU Lesser General Public
+    License along with this library; if not, see
+    <https://www.gnu.org/licenses/lgpl-3.0.html>.
+
+Also add information on how to contact you by electronic and paper mail.
+
+  You should also get your employer (if you work as a programmer) or
+school, if any, to sign a "copyright disclaimer" for the library, if
+necessary.  For more information on this, and how to apply and follow
+the GNU LGPL, see <https://www.gnu.org/licenses/lgpl-3.0.html>.
+
+  Note: The GNU LGPL allows you to link this library with proprietary
+programs to create a proprietary program.  Your program must comply
+with the requirements of the LGPL, including the requirement that you
+provide the source code of your proprietary program when you distribute
+it.  However, if you only link this library with other LGPL-compatible
+code, your proprietary code may be distributed under other licenses.
