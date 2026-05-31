@@ -13,7 +13,7 @@
 <p align="center">
  
   <a href="https://github.com/BiKing567/SerialTerminal/releases">
-    <img src="https://img.shields.io/github/v/release/BiKing567/SerialTerminal?include_prereleases&style=flat-square" alt="版本">
+    <img src="https://img.shields.io/github/v/release/BiKing567/SerialTerminal?include_releases&style=flat-square" alt="版本">
   </a>
 
   <a href="https://github.com/BiKing567/SerialTerminal/blob/main/LICENSE">
