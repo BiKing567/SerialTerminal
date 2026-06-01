@@ -260,11 +260,11 @@ open SerialTerminal.xcodeproj
 
 ## 📄 许可证
 
-本项目采用 **GNU Lesser General Public License v3.0** - 详见 [LICENSE](LICENSE) 文件。
+本项目采用 **GNU Lesser General Public License v2.1** - 详见 [LICENSE](LICENSE) 文件。
 
-### LGPL v3 许可证说明
+### LGPL v2.1 许可证说明
 
-LGPL v3 是一个宽松的 copyleft 许可证，主要特点包括：
+LGPL v2.1 是一个宽松的 copyleft 许可证，主要特点包括：
 
 - ✅ **可以免费使用** - 个人和商业使用均完全免费
 - ✅ **可以嵌入到闭源软件中** - 只要保持 SerialTerminal 库的独立性
