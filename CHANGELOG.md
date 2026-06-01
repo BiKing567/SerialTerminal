@@ -40,6 +40,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-06-01
+
+### Changed
+- **启动时自动刷新串口列表**：应用启动时会自动检测可用串口，并且每3秒自动刷新一次（未连接时）
+- **默认波特率改为9600**：更符合大多数嵌入式设备的常用波特率
+- **更新许可证为LGPL v3**：允许在闭源软件中链接使用
+
+### Fixed
+- 修复了串口列表可能不自动刷新的问题
+- 改进了消息缓冲机制
+
 ### Planned Features
 - DTR/RTS control
 - Line ending configuration
@@ -57,7 +68,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 | Version | Status | Release Date |
 |---------|--------|--------------|
-| 1.0.0   | Latest | 2024-01-01   |
+| 1.0.1   | Latest | 2026-06-01  |
+| 1.0.0   | Stable | 2024-01-01  |
 
 ## Versioning Strategy
 
