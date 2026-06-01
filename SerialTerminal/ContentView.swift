@@ -1,4 +1,5 @@
 import SwiftUI
+import Combine
 
 struct MessageItem: Identifiable {
     let id = UUID()
@@ -36,6 +37,7 @@ class TerminalViewModel: ObservableObject {
         f.dateFormat = "HH:mm:ss.SSS"
         return f
     }()
+    private var cancellables = Set<AnyCancellable>()
 
     init() {
         serialManager.delegate = self
@@ -47,6 +49,12 @@ class TerminalViewModel: ObservableObject {
                 displayString: "[ERROR] \(error)"
             ))
         }
+
+        serialManager.objectWillChange
+            .sink { [weak self] _ in
+                self?.objectWillChange.send()
+            }
+            .store(in: &cancellables)
     }
 
     func refreshPorts() {
@@ -258,27 +266,14 @@ struct ContentView: View {
 
     private var connectionToolbar: some View {
         HStack(spacing: 12) {
-            Menu {
+            Picker("串口", selection: $viewModel.selectedPort) {
+                Text("选择串口").tag(nil as SerialPortInfo?)
                 ForEach(viewModel.serialManager.availablePorts) { port in
-                    Button(port.name) {
-                        viewModel.selectedPort = port
-                    }
+                    Text(port.name).tag(port as SerialPortInfo?)
                 }
-                Divider()
-                Button("刷新串口列表") {
-                    viewModel.refreshPorts()
-                }
-            } label: {
-                HStack {
-                    Text(viewModel.selectedPort?.name ?? "选择串口")
-                        .frame(minWidth: 120, alignment: .leading)
-                    Image(systemName: "chevron.down")
-                }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
-                .background(Color(NSColor.controlBackgroundColor))
-                .cornerRadius(6)
             }
+            .pickerStyle(.menu)
+            .frame(minWidth: 140)
             .disabled(viewModel.isConnected)
 
             Picker("波特率", selection: $viewModel.config.baudRate) {
@@ -289,6 +284,13 @@ struct ContentView: View {
             .pickerStyle(.menu)
             .frame(minWidth: 120)
             .disabled(viewModel.isConnected)
+
+            Button(action: { viewModel.refreshPorts() }) {
+                Image(systemName: "arrow.clockwise")
+            }
+            .buttonStyle(.bordered)
+            .disabled(viewModel.isConnected)
+            .help("刷新串口列表")
 
             Button(action: viewModel.toggleConnection) {
                 HStack {
