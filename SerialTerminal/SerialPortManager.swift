@@ -18,7 +18,7 @@ struct SerialPortInfo: Identifiable, Hashable {
 }
 
 struct SerialConfig {
-    var baudRate: Int = 115200
+    var baudRate: Int = 9600
     var dataBits: Int = 8
     var parity: Parity = .none
     var stopBits: Int = 1

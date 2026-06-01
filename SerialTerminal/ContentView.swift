@@ -231,7 +231,8 @@ extension TerminalViewModel: SerialPortManagerDelegate {
 struct ContentView: View {
     @StateObject private var viewModel = TerminalViewModel()
     @State private var showSettings: Bool = false
-
+    @State private var autoRefreshTimer: Timer?
+    
     var body: some View {
         VStack(spacing: 0) {
             connectionToolbar
@@ -243,6 +244,15 @@ struct ContentView: View {
         .frame(minWidth: 700, minHeight: 500)
         .onAppear {
             viewModel.refreshPorts()
+            autoRefreshTimer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: true) { _ in
+                if !viewModel.isConnected {
+                    viewModel.refreshPorts()
+                }
+            }
+        }
+        .onDisappear {
+            autoRefreshTimer?.invalidate()
+            autoRefreshTimer = nil
         }
     }
 
