@@ -37,7 +37,7 @@
 # 1. 在 GitHub 上 Fork 仓库
 
 # 2. 克隆你的 Fork
-git clone https://github.com/YOUR_USERNAME/SerialTerminal.git
+git clone https://github.com/BiKing567/SerialTerminal.git
 cd SerialTerminal
 
 # 3. 添加上游仓库
