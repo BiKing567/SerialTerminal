@@ -5,7 +5,7 @@
 ## 🎯 贡献方式
 
 ### 🐛 报告问题
-- 在 [Issues](https://github.com/yourusername/SerialTerminal/issues) 中检查该问题是否已被报告
+- 在 [Issues](https://github.com/BiKing567/SerialTerminal/issues) 中检查该问题是否已被报告
 - 使用问题报告模板创建新的 issue
 - 请包含：
   - macOS 版本
@@ -16,7 +16,7 @@
   - 相关日志或截图
 
 ### 💡 建议功能
-- 检查已有的 [功能请求](https://github.com/yourusername/SerialTerminal/issues?q=is%3Aissue+is%3Aopen+label%3Aenhancement)
+- 检查已有的 [功能请求](https://github.com/BiKing567/SerialTerminal/issues?q=is%3Aissue+is%3Aopen+label%3Aenhancement)
 - 使用功能请求模板
 - 描述使用场景和动机
 - 解释它如何让用户受益
@@ -41,7 +41,7 @@ git clone https://github.com/YOUR_USERNAME/SerialTerminal.git
 cd SerialTerminal
 
 # 3. 添加上游仓库
-git remote add upstream https://github.com/yourusername/SerialTerminal.git
+git remote add upstream https://github.com/BiKing567/SerialTerminal.git
 
 # 4. 创建功能分支
 git checkout -b feature/your-feature-name
@@ -214,8 +214,8 @@ SerialTerminal/
 
 ## 📧 联系方式
 
-- **问题**: [GitHub Issues](https://github.com/yourusername/SerialTerminal/issues)
-- **讨论**: [GitHub Discussions](https://github.com/yourusername/SerialTerminal/discussions)
+- **问题**: [GitHub Issues](https://github.com/BiKing567/SerialTerminal/issues)
+- **讨论**: [GitHub Discussions](https://github.com/BiKing567/SerialTerminal/discussions)
 
 ## 📄 许可证
 
