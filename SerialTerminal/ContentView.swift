@@ -50,6 +50,15 @@ class TerminalViewModel: ObservableObject {
             ))
         }
 
+        serialManager.onDisconnectedMessage = { [weak self] message in
+            self?.messages.append(MessageItem(
+                data: Data(),
+                timestamp: Date(),
+                isIncoming: true,
+                displayString: message
+            ))
+        }
+
         serialManager.objectWillChange
             .sink { [weak self] _ in
                 self?.objectWillChange.send()

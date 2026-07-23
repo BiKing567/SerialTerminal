@@ -58,11 +58,14 @@ class SerialPortManager: ObservableObject {
     private var readQueue: DispatchQueue?
     private var logQueue: DispatchQueue
     private var flushTimer: DispatchSourceTimer?
+    private var healthCheckTimer: DispatchSourceTimer?
     private var receiveBuffer = Data()
     private let bufferLock = NSLock()
+    private var isDisconnecting = false
 
     var onDataReceived: ((Data, Date) -> Void)?
     var onError: ((String) -> Void)?
+    var onDisconnectedMessage: ((String) -> Void)?
 
     init() {
         logQueue = DispatchQueue(label: "com.serialdebug.logqueue")
@@ -185,6 +188,8 @@ class SerialPortManager: ObservableObject {
         }
         flushTimer?.resume()
 
+        startHealthCheck()
+
         readQueue = DispatchQueue(label: "com.serialdebug.readqueue", qos: .userInteractive)
         readSource = DispatchSource.makeReadSource(fileDescriptor: fileDescriptor, queue: readQueue)
 
@@ -207,6 +212,8 @@ class SerialPortManager: ObservableObject {
     }
 
     func disconnect() {
+        stopHealthCheck()
+
         flushTimer?.cancel()
         flushTimer = nil
 
@@ -221,6 +228,8 @@ class SerialPortManager: ObservableObject {
             fileDescriptor = -1
         }
 
+        isDisconnecting = false
+
         DispatchQueue.main.async {
             self.isConnected = false
             self.delegate?.serialPortDidDisconnect()
@@ -228,11 +237,22 @@ class SerialPortManager: ObservableObject {
     }
 
     func send(_ data: Data) {
-        guard fileDescriptor != -1 else { return }
+        guard fileDescriptor != -1, isConnected else { return }
 
         data.withUnsafeBytes { buffer in
             if let baseAddress = buffer.baseAddress {
-                _ = Darwin.write(fileDescriptor, baseAddress, buffer.count)
+                let written = Darwin.write(fileDescriptor, baseAddress, buffer.count)
+                if written < 0 {
+                    let err = errno
+                    if err == EIO || err == EBADF || err == ENXIO {
+                        if self.isDisconnecting { return }
+                        self.isDisconnecting = true
+                        DispatchQueue.main.async {
+                            self.onDisconnectedMessage?("检测到设备被移除，已自动断开连接")
+                            self.disconnect()
+                        }
+                    }
+                }
             }
         }
     }
@@ -244,6 +264,7 @@ class SerialPortManager: ObservableObject {
     }
 
     private func readAvailableData() {
+        guard !isDisconnecting else { return }
         var buffer = [UInt8](repeating: 0, count: 4096)
         let bytesRead = read(fileDescriptor, &buffer, buffer.count)
 
@@ -251,23 +272,29 @@ class SerialPortManager: ObservableObject {
             let data = Data(buffer[0..<bytesRead])
             bufferLock.lock()
             receiveBuffer.append(data)
-
-            let hasNewline = receiveBuffer.contains { $0 == 10 || $0 == 13 }
-            if hasNewline {
-                let timestamp = Date()
-                let dataToSend = receiveBuffer
-                receiveBuffer = Data()
-                bufferLock.unlock()
+            bufferLock.unlock()
+        } else if bytesRead == 0 {
+            // EOF - device disconnected
+            isDisconnecting = true
+            DispatchQueue.main.async {
+                self.onDisconnectedMessage?("检测到设备被移除，已自动断开连接")
+                self.disconnect()
+            }
+        } else if bytesRead < 0 {
+            let err = errno
+            if err == EAGAIN || err == EWOULDBLOCK {
+                return
+            }
+            if err == EIO || err == EBADF || err == ENXIO {
+                isDisconnecting = true
                 DispatchQueue.main.async {
-                    self.onDataReceived?(dataToSend, timestamp)
-                    self.delegate?.serialPortDidReceive(data: dataToSend, timestamp: timestamp)
+                    self.onDisconnectedMessage?("检测到设备被移除，已自动断开连接")
+                    self.disconnect()
                 }
             } else {
-                bufferLock.unlock()
-            }
-        } else if bytesRead < 0 && errno != EAGAIN && errno != EWOULDBLOCK {
-            DispatchQueue.main.async {
-                self.onError?("读取错误: \(String(cString: strerror(errno)))")
+                DispatchQueue.main.async {
+                    self.onError?("读取错误: \(String(cString: strerror(err)))")
+                }
             }
         }
     }
@@ -286,6 +313,35 @@ class SerialPortManager: ObservableObject {
             self.onDataReceived?(data, Date())
             self.delegate?.serialPortDidReceive(data: data, timestamp: Date())
         }
+    }
+
+    private func startHealthCheck() {
+        stopHealthCheck()
+        let timer = DispatchSource.makeTimerSource(queue: logQueue)
+        timer.schedule(deadline: .now() + 2, repeating: .seconds(2))
+        timer.setEventHandler { [weak self] in
+            guard let self = self, self.fileDescriptor != -1 else { return }
+            var temp = termios()
+            let result = tcgetattr(self.fileDescriptor, &temp)
+            if result != 0 {
+                let err = errno
+                if err == EIO || err == EBADF || err == ENODEV || err == ENXIO {
+                    if self.isDisconnecting { return }
+                    self.isDisconnecting = true
+                    DispatchQueue.main.async {
+                        self.onDisconnectedMessage?("检测到设备被移除，已自动断开连接")
+                        self.disconnect()
+                    }
+                }
+            }
+        }
+        healthCheckTimer = timer
+        timer.resume()
+    }
+
+    private func stopHealthCheck() {
+        healthCheckTimer?.cancel()
+        healthCheckTimer = nil
     }
 
     private func speedConstant(for baudRate: Int) -> speed_t {
