@@ -258,7 +258,7 @@ open SerialTerminal.xcodeproj
 
 ## 📄 许可证
 
-本项目采用 **GNU Lesser General Public License v3.0** - 详见 [LICENSE](LICENSE) 文件。
+本项目采用 **Apache 2.0** - 详见 [LICENSE](LICENSE) 文件。
 
 ### LGPL v3 许可证说明
 
