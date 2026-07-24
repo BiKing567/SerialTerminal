@@ -182,10 +182,11 @@ class SerialPortManager: ObservableObject {
         receiveBuffer = Data()
 
         flushTimer = DispatchSource.makeTimerSource(queue: logQueue)
-        flushTimer?.schedule(deadline: .now(), repeating: .milliseconds(300))
         flushTimer?.setEventHandler { [weak self] in
             self?.flushBuffer()
         }
+        // Start with distant future - won't fire until data arrives
+        flushTimer?.schedule(deadline: .distantFuture, repeating: .never)
         flushTimer?.resume()
 
         startHealthCheck()
@@ -272,6 +273,9 @@ class SerialPortManager: ObservableObject {
             let data = Data(buffer[0..<bytesRead])
             bufferLock.lock()
             receiveBuffer.append(data)
+
+            // Debounce: reset the flush timer - fires 200ms after last data arrival
+            flushTimer?.schedule(deadline: .now() + .milliseconds(200), repeating: .never)
 
             // Flush immediately when newline is detected
             let hasNewline = receiveBuffer.contains { $0 == 10 || $0 == 13 }
