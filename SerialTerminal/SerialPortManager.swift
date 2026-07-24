@@ -182,7 +182,7 @@ class SerialPortManager: ObservableObject {
         receiveBuffer = Data()
 
         flushTimer = DispatchSource.makeTimerSource(queue: logQueue)
-        flushTimer?.schedule(deadline: .now(), repeating: .milliseconds(50))
+        flushTimer?.schedule(deadline: .now(), repeating: .milliseconds(300))
         flushTimer?.setEventHandler { [weak self] in
             self?.flushBuffer()
         }
@@ -272,7 +272,14 @@ class SerialPortManager: ObservableObject {
             let data = Data(buffer[0..<bytesRead])
             bufferLock.lock()
             receiveBuffer.append(data)
+
+            // Flush immediately when newline is detected
+            let hasNewline = receiveBuffer.contains { $0 == 10 || $0 == 13 }
             bufferLock.unlock()
+
+            if hasNewline {
+                flushBuffer()
+            }
         } else if bytesRead == 0 {
             // EOF - device disconnected
             isDisconnecting = true
