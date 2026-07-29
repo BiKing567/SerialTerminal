@@ -183,8 +183,9 @@ class SerialPortManager: ObservableObject {
 
         flushTimer = DispatchSource.makeTimerSource(queue: logQueue)
         flushTimer?.setEventHandler { [weak self] in
-            self?.flushBuffer()
+            self?.flushCompleteLines()
         }
+
         // Start with distant future - won't fire until data arrives
         flushTimer?.schedule(deadline: .distantFuture, repeating: .never)
         flushTimer?.resume()
@@ -218,7 +219,7 @@ class SerialPortManager: ObservableObject {
         flushTimer?.cancel()
         flushTimer = nil
 
-        flushBuffer()
+        flushRemaining()
 
         readSource?.cancel()
         readSource = nil
@@ -273,17 +274,13 @@ class SerialPortManager: ObservableObject {
             let data = Data(buffer[0..<bytesRead])
             bufferLock.lock()
             receiveBuffer.append(data)
-
-            // Debounce: reset the flush timer - fires 200ms after last data arrival
-            flushTimer?.schedule(deadline: .now() + .milliseconds(200), repeating: .never)
-
-            // Flush immediately when newline is detected
-            let hasNewline = receiveBuffer.contains { $0 == 10 || $0 == 13 }
             bufferLock.unlock()
 
-            if hasNewline {
-                flushBuffer()
-            }
+            // Debounce: reset the flush timer
+            flushTimer?.schedule(deadline: .now() + .milliseconds(200), repeating: .never)
+
+            // Flush complete lines while holding the lock once
+            flushCompleteLines()
         } else if bytesRead == 0 {
             // EOF - device disconnected
             isDisconnecting = true
@@ -310,19 +307,46 @@ class SerialPortManager: ObservableObject {
         }
     }
 
-    private func flushBuffer() {
+    /// Flush all complete lines (data ending with \n or \r) from the buffer
+    private func flushCompleteLines() {
         bufferLock.lock()
-        if receiveBuffer.isEmpty {
-            bufferLock.unlock()
-            return
+        defer { bufferLock.unlock() }
+
+        var lines: [Data] = []
+        while let idx = receiveBuffer.firstIndex(where: { $0 == 10 || $0 == 13 }) {
+            let isCR = receiveBuffer[idx] == 13
+            var endIdx = idx + 1
+            // treat CRLF as single line ending to avoid empty lines
+            if isCR && endIdx < receiveBuffer.count && receiveBuffer[endIdx] == 10 {
+                endIdx += 1
+            }
+            let lineData = receiveBuffer.subdata(in: 0..<endIdx)
+            receiveBuffer.removeSubrange(0..<endIdx)
+            // skip empty lines (e.g. bare LF split from CRLF)
+            guard lineData.contains(where: { $0 != 10 && $0 != 13 }) else { continue }
+            lines.append(lineData)
         }
+
+        for line in lines {
+            let timestamp = Date()
+            DispatchQueue.main.async {
+                self.onDataReceived?(line, timestamp)
+                self.delegate?.serialPortDidReceive(data: line, timestamp: timestamp)
+            }
+        }
+    }
+
+    /// Flush remaining data (no newline) - called by the stale-data fallback timer
+    private func flushRemaining() {
+        bufferLock.lock()
+        defer { bufferLock.unlock() }
+        guard !receiveBuffer.isEmpty else { return }
         let data = receiveBuffer
         receiveBuffer = Data()
-        bufferLock.unlock()
-
+        let timestamp = Date()
         DispatchQueue.main.async {
-            self.onDataReceived?(data, Date())
-            self.delegate?.serialPortDidReceive(data: data, timestamp: Date())
+            self.onDataReceived?(data, timestamp)
+            self.delegate?.serialPortDidReceive(data: data, timestamp: timestamp)
         }
     }
 
