@@ -260,20 +260,19 @@ open SerialTerminal.xcodeproj
 
 本项目采用 **Apache 2.0** - 详见 [LICENSE](LICENSE) 文件。
 
-### LGPL v3 许可证说明
+### Apache 2.0 许可证说明
 
-LGPL v3 是一个宽松的 copyleft 许可证，主要特点包括：
+SerialTerminal 使用 **Apache License 2.0** 开源许可证，主要特点包括：
 
-- ✅ **可以免费使用** - 个人和商业使用均完全免费
-- ✅ **可以嵌入到闭源软件中** - 只要保持 SerialTerminal 库的独立性
-- ✅ **修改需开源** - 如果修改了 SerialTerminal 的源代码，必须发布修改后的版本
-- 📋 **说明要求** - 在使用 LGPL 库的软件中需要明确说明使用了 SerialTerminal
-- 📋 **提供源代码** - 需要提供获取 SerialTerminal 源代码的途径
+- ✅ **商业友好** - 可以自由使用、修改、分发，包括闭源商用
+- ✅ **无需开源** - 修改后的代码不需要强制开源
+- ✅ **保留版权声明** - 使用需保留原始版权声明和许可证副本
+- 📋 **无担保** - 按"原样"提供，不附带任何担保
 
 简单来说：
-- 你可以自由使用 SerialTerminal
-- 如果你修改了 SerialTerminal，需要开源修改后的代码
-- 你可以将 SerialTerminal 集成到闭源软件中（只要保持分离）
+- 你可以自由使用、修改、集成 SerialTerminal 到任何项目中
+- 不需要开源你的修改或衍生代码
+- 仅需保留版权声明即可
 
 ## 🙏 致谢
 
