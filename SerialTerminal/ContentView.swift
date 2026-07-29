@@ -249,6 +249,9 @@ struct ContentView: View {
     @StateObject private var viewModel = TerminalViewModel()
     @State private var showSettings: Bool = false
     @State private var autoRefreshTimer: Timer?
+    @AppStorage("terminalFontSize") private var fontSize: Double = 13
+    @State private var eventMonitor: Any? = nil
+    @State private var baseScale: Double = 13
     
     var body: some View {
         VStack(spacing: 0) {
@@ -261,13 +264,30 @@ struct ContentView: View {
         .frame(minWidth: 700, minHeight: 500)
         .onAppear {
             viewModel.refreshPorts()
+            baseScale = fontSize
             autoRefreshTimer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: true) { _ in
                 if !viewModel.isConnected {
                     viewModel.refreshPorts()
                 }
             }
+            eventMonitor = NSEvent.addLocalMonitorForEvents(matching: .scrollWheel) { [self] event in
+                if event.modifierFlags.contains(.control) {
+                    let step: Double = event.scrollingDeltaY > 0 ? 1 : -1
+                    var newSize = fontSize + step
+                    newSize = max(8, min(72, newSize))
+                    if newSize != fontSize {
+                        fontSize = newSize
+                        baseScale = newSize
+                    }
+                    return nil
+                }
+                return event
+            }
         }
         .onDisappear {
+            if let monitor = eventMonitor {
+                NSEvent.removeMonitor(monitor)
+            }
             autoRefreshTimer?.invalidate()
             autoRefreshTimer = nil
         }
@@ -360,7 +380,7 @@ struct ContentView: View {
                     LazyVStack(alignment: .leading, spacing: 2) {
                         ForEach(viewModel.messages) { message in
                             Text(message.displayString)
-                                .font(.system(size: 13, design: .monospaced))
+                                .font(.system(size: fontSize, design: .monospaced))
                                 .foregroundColor(message.isIncoming ? .primary : .blue)
                                 .textSelection(.enabled)
                                 .id(message.id)
@@ -368,6 +388,16 @@ struct ContentView: View {
                     }
                     .padding(8)
                 }
+                .simultaneousGesture(
+                    MagnificationGesture()
+                        .onChanged { scale in
+                            let newSize = baseScale * scale
+                            fontSize = max(8, min(72, newSize))
+                        }
+                        .onEnded { scale in
+                            baseScale = fontSize
+                        }
+                )
                 .background(Color(NSColor.textBackgroundColor))
                 .onChange(of: viewModel.messages.count) { _ in
                     if viewModel.autoScroll, let last = viewModel.messages.last {

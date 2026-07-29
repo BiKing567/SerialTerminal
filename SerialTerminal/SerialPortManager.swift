@@ -59,6 +59,7 @@ class SerialPortManager: ObservableObject {
     private var logQueue: DispatchQueue
     private var flushTimer: DispatchSourceTimer?
     private var healthCheckTimer: DispatchSourceTimer?
+    private var staleFlushTimer: DispatchSourceTimer?
     private var receiveBuffer = Data()
     private let bufferLock = NSLock()
     private var isDisconnecting = false
@@ -190,6 +191,13 @@ class SerialPortManager: ObservableObject {
         flushTimer?.schedule(deadline: .distantFuture, repeating: .never)
         flushTimer?.resume()
 
+        staleFlushTimer = DispatchSource.makeTimerSource(queue: logQueue)
+        staleFlushTimer?.schedule(deadline: .now() + 1, repeating: .seconds(1), leeway: .milliseconds(100))
+        staleFlushTimer?.setEventHandler { [weak self] in
+            self?.flushRemaining()
+        }
+        staleFlushTimer?.resume()
+
         startHealthCheck()
 
         readQueue = DispatchQueue(label: "com.serialdebug.readqueue", qos: .userInteractive)
@@ -218,6 +226,9 @@ class SerialPortManager: ObservableObject {
 
         flushTimer?.cancel()
         flushTimer = nil
+
+        staleFlushTimer?.cancel()
+        staleFlushTimer = nil
 
         flushRemaining()
 
@@ -278,6 +289,7 @@ class SerialPortManager: ObservableObject {
 
             // Debounce: reset the flush timer
             flushTimer?.schedule(deadline: .now() + .milliseconds(200), repeating: .never)
+
 
             // Flush complete lines while holding the lock once
             flushCompleteLines()
