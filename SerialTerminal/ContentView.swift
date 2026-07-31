@@ -200,15 +200,34 @@ class TerminalViewModel: ObservableObject {
     }
 
     private func formatAscii(_ data: Data) -> String {
-        String(data.map { byte -> Character in
-            if byte >= 32 && byte < 127 {
-                return Character(UnicodeScalar(byte))
-            } else if byte == 13 || byte == 10 {
-                return byte == 13 ? "\u{21B5}" : "\u{21B5}"
+        // 尝试 UTF-8 解码（现代设备默认编码）
+        if let string = String(data: data, encoding: .utf8) {
+            return sanitizeForDisplay(string)
+        }
+        // 尝试 GB18030/GBK 解码（常见于国产串口设备）
+        let gbk = String.Encoding(rawValue: CFStringConvertEncodingToNSStringEncoding(
+            CFStringEncoding(CFStringEncodings.GB_18030_2000.rawValue)))
+        if let string = String(data: data, encoding: gbk) {
+            return sanitizeForDisplay(string)
+        }
+        // 兜底：Latin-1 不会失败，保证每个字节都有显示
+        return sanitizeForDisplay(String(data: data, encoding: .isoLatin1) ?? "")
+    }
+
+    private func sanitizeForDisplay(_ string: String) -> String {
+        var result = ""
+        result.reserveCapacity(string.count)
+        for scalar in string.unicodeScalars {
+            let value = scalar.value
+            if value == 13 || value == 10 {
+                result.append("\u{21B5}")
+            } else if value < 32 {
+                result.append(".")
             } else {
-                return "."
+                result.unicodeScalars.append(scalar)
             }
-        })
+        }
+        return result
     }
 
     private func formatHex(_ data: Data) -> String {
