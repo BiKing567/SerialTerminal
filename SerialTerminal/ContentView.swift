@@ -1,5 +1,6 @@
 import SwiftUI
 import Combine
+import UniformTypeIdentifiers
 
 struct MessageItem: Identifiable {
     let id = UUID()
@@ -23,6 +24,56 @@ class TerminalViewModel: ObservableObject {
     @Published var hexInputText: String = ""
 
     @Published var config: SerialConfig = SerialConfig()
+
+    // Line ending
+    enum LineEnding: String, CaseIterable, Identifiable {
+        case none, cr, lf, crlf
+        var id: String { rawValue }
+        var label: String {
+            switch self {
+            case .none: return "无"
+            case .cr: return "CR (\\r)"
+            case .lf: return "LF (\\n)"
+            case .crlf: return "CRLF (\\r\\n)"
+            }
+        }
+    }
+    @Published var lineEnding: LineEnding = .lf
+
+    // Encoding
+    enum DisplayEncoding: String, CaseIterable, Identifiable {
+        case auto, utf8, gbk, latin1
+        var id: String { rawValue }
+        var label: String {
+            switch self {
+            case .auto: return "自动"
+            case .utf8: return "UTF-8"
+            case .gbk: return "GB18030/GBK"
+            case .latin1: return "Latin-1"
+            }
+        }
+    }
+    @Published var displayEncoding: DisplayEncoding = .auto
+
+    // Auto send
+    @Published var autoSendEnabled: Bool = false {
+        didSet {
+            if autoSendEnabled { startAutoSend() } else { stopAutoSend() }
+        }
+    }
+    @Published var autoSendInterval: Double = 1.0
+    private var autoSendTimer: Timer?
+
+    // Send history
+    @Published var sendHistory: [String] = []
+
+    // RX/TX counters (mirrored from serialManager)
+    @Published var rxBytes: UInt64 = 0
+    @Published var txBytes: UInt64 = 0
+
+    // DTR/RTS
+    @Published var dtrEnabled: Bool = true
+    @Published var rtsEnabled: Bool = true
 
     enum DisplayMode: String, CaseIterable {
         case ascii = "ASCII"
@@ -64,6 +115,17 @@ class TerminalViewModel: ObservableObject {
                 self?.objectWillChange.send()
             }
             .store(in: &cancellables)
+
+        // Mirror rxBytes/txBytes from serialManager
+        serialManager.$rxBytes
+            .receive(on: DispatchQueue.main)
+            .assign(to: &$rxBytes)
+        serialManager.$txBytes
+            .receive(on: DispatchQueue.main)
+            .assign(to: &$txBytes)
+
+        // Load send history
+        sendHistory = UserDefaults.standard.stringArray(forKey: "sendHistory") ?? []
     }
 
     func refreshPorts() {
@@ -85,25 +147,42 @@ class TerminalViewModel: ObservableObject {
     }
 
     func disconnect() {
+        stopAutoSend()
+        autoSendEnabled = false
         serialManager.disconnect()
     }
 
     func send() {
-        if showHexInput && !hexInputText.isEmpty {
+        guard isConnected else { return }
+        if showHexInput {
             sendHex(hexInputText)
-            hexInputText = ""
-        } else if !sendText.isEmpty {
-            let text = sendText.hasSuffix("\n") ? sendText : sendText + "\n"
+            switch lineEnding {
+            case .none: break
+            case .cr: serialManager.send(Data([0x0D]))
+            case .lf: serialManager.send(Data([0x0A]))
+            case .crlf: serialManager.send(Data([0x0D, 0x0A]))
+            }
+            addToHistory(hexInputText)
+        } else {
+            var text = sendText
+            switch lineEnding {
+            case .none: break
+            case .cr: text += "\r"
+            case .lf: text += "\n"
+            case .crlf: text += "\r\n"
+            }
             serialManager.send(text)
-            addMessage(Data(text.utf8), timestamp: Date(), isIncoming: false)
-            sendText = ""
+            addToHistory(sendText)
         }
     }
 
     func sendHex(_ hexString: String) {
-        let cleaned = hexString.replacingOccurrences(of: " ", with: "")
+        var cleaned = hexString.replacingOccurrences(of: " ", with: "")
             .replacingOccurrences(of: "\n", with: "")
             .uppercased()
+        if !cleaned.isEmpty && cleaned.count % 2 != 0 {
+            cleaned = "0" + cleaned
+        }
 
         var data = Data()
         var index = cleaned.startIndex
@@ -200,18 +279,24 @@ class TerminalViewModel: ObservableObject {
     }
 
     private func formatAscii(_ data: Data) -> String {
-        // 尝试 UTF-8 解码（现代设备默认编码）
-        if let string = String(data: data, encoding: .utf8) {
-            return sanitizeForDisplay(string)
-        }
-        // 尝试 GB18030/GBK 解码（常见于国产串口设备）
         let gbk = String.Encoding(rawValue: CFStringConvertEncodingToNSStringEncoding(
             CFStringEncoding(CFStringEncodings.GB_18030_2000.rawValue)))
-        if let string = String(data: data, encoding: gbk) {
-            return sanitizeForDisplay(string)
+        let decoded: String
+        switch displayEncoding {
+        case .auto:
+            if let s = String(data: data, encoding: .utf8) { decoded = s }
+            else if let s = String(data: data, encoding: gbk) { decoded = s }
+            else { decoded = String(data: data, encoding: .isoLatin1) ?? "" }
+        case .utf8:
+            decoded = String(data: data, encoding: .utf8)
+                ?? String(data: data, encoding: .isoLatin1) ?? ""
+        case .gbk:
+            decoded = String(data: data, encoding: gbk)
+                ?? String(data: data, encoding: .isoLatin1) ?? ""
+        case .latin1:
+            decoded = String(data: data, encoding: .isoLatin1) ?? ""
         }
-        // 兜底：Latin-1 不会失败，保证每个字节都有显示
-        return sanitizeForDisplay(String(data: data, encoding: .isoLatin1) ?? "")
+        return sanitizeForDisplay(decoded)
     }
 
     private func sanitizeForDisplay(_ string: String) -> String {
@@ -233,6 +318,68 @@ class TerminalViewModel: ObservableObject {
     private func formatHex(_ data: Data) -> String {
         data.map { String(format: "%02X", $0) }.joined(separator: " ")
     }
+
+    // MARK: - Auto Send
+
+    func startAutoSend() {
+        stopAutoSend()
+        guard isConnected else { return }
+        let interval = max(0.1, autoSendInterval)
+        autoSendTimer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [weak self] _ in
+            self?.send()
+        }
+    }
+
+    func stopAutoSend() {
+        autoSendTimer?.invalidate()
+        autoSendTimer = nil
+    }
+
+    // MARK: - Send History
+
+    private func addToHistory(_ text: String) {
+        guard !text.isEmpty else { return }
+        sendHistory.removeAll { $0 == text }
+        sendHistory.insert(text, at: 0)
+        if sendHistory.count > 50 { sendHistory.removeLast(sendHistory.count - 50) }
+        UserDefaults.standard.set(sendHistory, forKey: "sendHistory")
+    }
+
+    // MARK: - RX/TX Counters
+
+    func resetCounters() {
+        rxBytes = 0
+        txBytes = 0
+        serialManager.rxBytes = 0
+        serialManager.txBytes = 0
+    }
+
+    // MARK: - DTR/RTS
+
+    func setDTR(_ on: Bool) {
+        dtrEnabled = on
+        serialManager.setDTR(on)
+    }
+
+    func setRTS(_ on: Bool) {
+        rtsEnabled = on
+        serialManager.setRTS(on)
+    }
+
+    // MARK: - Export
+
+    func exportMessages() {
+        let panel = NSSavePanel()
+        panel.title = "导出串口会话"
+        panel.nameFieldStringValue = "SerialTerminal-export.txt"
+        panel.allowedContentTypes = [.plainText]
+        panel.begin { response in
+            guard response == .OK, let url = panel.url else { return }
+            let lines = self.messages.map { $0.displayString }
+            let content = lines.joined(separator: "\n") + "\n"
+            try? content.write(to: url, atomically: true, encoding: .utf8)
+        }
+    }
 }
 
 extension TerminalViewModel: SerialPortManagerDelegate {
@@ -249,6 +396,8 @@ extension TerminalViewModel: SerialPortManagerDelegate {
     func serialPortDidDisconnect() {
         DispatchQueue.main.async {
             self.isConnected = false
+            self.stopAutoSend()
+            self.autoSendEnabled = false
         }
     }
 
@@ -309,6 +458,7 @@ struct ContentView: View {
             }
             autoRefreshTimer?.invalidate()
             autoRefreshTimer = nil
+            viewModel.disconnect()
         }
     }
 
@@ -351,6 +501,19 @@ struct ContentView: View {
             .buttonStyle(.borderedProminent)
             .tint(viewModel.isConnected ? .red : .green)
 
+            Toggle("DTR", isOn: Binding(
+                get: { viewModel.dtrEnabled },
+                set: { viewModel.setDTR($0) }
+            ))
+            .disabled(!viewModel.isConnected)
+            .toggleStyle(.checkbox)
+            Toggle("RTS", isOn: Binding(
+                get: { viewModel.rtsEnabled },
+                set: { viewModel.setRTS($0) }
+            ))
+            .disabled(!viewModel.isConnected)
+            .toggleStyle(.checkbox)
+
             Spacer()
 
             Button(action: { showSettings.toggle() }) {
@@ -376,6 +539,16 @@ struct ContentView: View {
                 }
                 .pickerStyle(.segmented)
                 .frame(width: 200)
+
+                Text("RX: \(viewModel.rxBytes) B")
+                    .font(.system(size: 11, design: .monospaced))
+                    .foregroundColor(.secondary)
+                Text("TX: \(viewModel.txBytes) B")
+                    .font(.system(size: 11, design: .monospaced))
+                    .foregroundColor(.secondary)
+                Button("清零") { viewModel.resetCounters() }
+                    .buttonStyle(.link)
+                    .font(.system(size: 11))
 
                 Spacer()
 
@@ -458,12 +631,61 @@ struct ContentView: View {
                 .buttonStyle(.borderedProminent)
                 .disabled(viewModel.showHexInput ? viewModel.hexInputText.isEmpty : viewModel.sendText.isEmpty)
 
+                Menu {
+                    ForEach(TerminalViewModel.LineEnding.allCases) { ending in
+                        Button {
+                            viewModel.lineEnding = ending
+                        } label: {
+                            if viewModel.lineEnding == ending {
+                                Label(ending.label, systemImage: "checkmark")
+                            } else {
+                                Text(ending.label)
+                            }
+                        }
+                    }
+                } label: {
+                    Label(viewModel.lineEnding.label, systemImage: "return")
+                }
+                .menuStyle(.borderlessButton)
+                .fixedSize()
+
+                Toggle("定时", isOn: $viewModel.autoSendEnabled)
+                    .toggleStyle(.checkbox)
+                    .disabled(!viewModel.isConnected)
+                if viewModel.autoSendEnabled {
+                    TextField("间隔(秒)", value: $viewModel.autoSendInterval, format: .number)
+                        .textFieldStyle(.roundedBorder)
+                        .frame(width: 60)
+                }
+
+                Menu {
+                    if viewModel.sendHistory.isEmpty {
+                        Text("暂无历史")
+                    } else {
+                        ForEach(viewModel.sendHistory, id: \.self) { item in
+                            Button(item) { viewModel.sendText = item }
+                        }
+                    }
+                } label: {
+                    Image(systemName: "clock.arrow.circlepath")
+                }
+                .menuStyle(.borderlessButton)
+                .help("发送历史")
+
                 Button(action: viewModel.toggleLogging) {
                     Image(systemName: viewModel.isLogging ? "stop.circle.fill" : "record.circle")
                         .foregroundColor(viewModel.isLogging ? .red : .secondary)
                 }
                 .buttonStyle(.bordered)
                 .help(viewModel.isLogging ? "停止记录" : "开始记录到文件")
+
+                Button {
+                    viewModel.exportMessages()
+                } label: {
+                    Image(systemName: "square.and.arrow.up")
+                }
+                .buttonStyle(.bordered)
+                .help("导出当前会话")
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 10)
@@ -503,6 +725,12 @@ struct SettingsView: View {
                 Picker("流控制", selection: $viewModel.config.flowControl) {
                     ForEach(SerialConfig.FlowControl.allCases, id: \.self) { flow in
                         Text(flow.rawValue).tag(flow)
+                    }
+                }
+
+                Picker("编码", selection: $viewModel.displayEncoding) {
+                    ForEach(TerminalViewModel.DisplayEncoding.allCases) { enc in
+                        Text(enc.label).tag(enc)
                     }
                 }
             }

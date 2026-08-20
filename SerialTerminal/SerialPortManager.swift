@@ -50,6 +50,8 @@ class SerialPortManager: ObservableObject {
     @Published var availablePorts: [SerialPortInfo] = []
     @Published var isConnected: Bool = false
     @Published var config: SerialConfig = SerialConfig()
+    @Published var rxBytes: UInt64 = 0
+    @Published var txBytes: UInt64 = 0
 
     weak var delegate: SerialPortManagerDelegate?
 
@@ -63,6 +65,8 @@ class SerialPortManager: ObservableObject {
     private var receiveBuffer = Data()
     private let bufferLock = NSLock()
     private var isDisconnecting = false
+    private var heldBytes: Int = 0      // 上一次保留的字节数
+    private var heldTicks: Int = 0      // 连续保留次数（1秒/次）
 
     var onDataReceived: ((Data, Date) -> Void)?
     var onError: ((String) -> Void)?
@@ -178,9 +182,14 @@ class SerialPortManager: ObservableObject {
             return
         }
 
+        setDTR(true)
+        setRTS(true)
+
         tcflush(fileDescriptor, TCIOFLUSH)
 
         receiveBuffer = Data()
+        heldBytes = 0
+        heldTicks = 0
 
         flushTimer = DispatchSource.makeTimerSource(queue: logQueue)
         flushTimer?.setEventHandler { [weak self] in
@@ -230,7 +239,7 @@ class SerialPortManager: ObservableObject {
         staleFlushTimer?.cancel()
         staleFlushTimer = nil
 
-        flushRemaining()
+        flushRemaining(force: true)
 
         readSource?.cancel()
         readSource = nil
@@ -255,6 +264,11 @@ class SerialPortManager: ObservableObject {
         data.withUnsafeBytes { buffer in
             if let baseAddress = buffer.baseAddress {
                 let written = Darwin.write(fileDescriptor, baseAddress, buffer.count)
+                if written > 0 {
+                    DispatchQueue.main.async {
+                        self.txBytes += UInt64(written)
+                    }
+                }
                 if written < 0 {
                     let err = errno
                     if err == EIO || err == EBADF || err == ENXIO {
@@ -276,6 +290,22 @@ class SerialPortManager: ObservableObject {
         }
     }
 
+    func setDTR(_ enabled: Bool) {
+        guard fileDescriptor != -1 else { return }
+        var bits: Int32 = 0
+        if ioctl(fileDescriptor, UInt(TIOCMGET), &bits) != 0 { return }
+        if enabled { bits |= Int32(TIOCM_DTR) } else { bits &= ~Int32(TIOCM_DTR) }
+        _ = ioctl(fileDescriptor, UInt(TIOCMSET), &bits)
+    }
+
+    func setRTS(_ enabled: Bool) {
+        guard fileDescriptor != -1 else { return }
+        var bits: Int32 = 0
+        if ioctl(fileDescriptor, UInt(TIOCMGET), &bits) != 0 { return }
+        if enabled { bits |= Int32(TIOCM_RTS) } else { bits &= ~Int32(TIOCM_RTS) }
+        _ = ioctl(fileDescriptor, UInt(TIOCMSET), &bits)
+    }
+
     private func readAvailableData() {
         guard !isDisconnecting else { return }
         var buffer = [UInt8](repeating: 0, count: 4096)
@@ -283,6 +313,9 @@ class SerialPortManager: ObservableObject {
 
         if bytesRead > 0 {
             let data = Data(buffer[0..<bytesRead])
+            DispatchQueue.main.async {
+                self.rxBytes += UInt64(bytesRead)
+            }
             bufferLock.lock()
             receiveBuffer.append(data)
             bufferLock.unlock()
@@ -349,17 +382,102 @@ class SerialPortManager: ObservableObject {
     }
 
     /// Flush remaining data (no newline) - called by the stale-data fallback timer
-    private func flushRemaining() {
+    private func flushRemaining(force: Bool = false) {
         bufferLock.lock()
         defer { bufferLock.unlock() }
-        guard !receiveBuffer.isEmpty else { return }
-        let data = receiveBuffer
-        receiveBuffer = Data()
+        guard !receiveBuffer.isEmpty else {
+            heldBytes = 0
+            heldTicks = 0
+            return
+        }
+
+        let keepCount = trailingIncompleteCount(receiveBuffer)
+
+        // 连续保留超过 3 秒（3 个 tick）仍无新数据补全 → 强制刷出，避免二进制/孤立字节无限滞留
+        var effectiveKeep = keepCount
+        if force {
+            effectiveKeep = 0
+        } else if keepCount > 0 {
+            if heldBytes == keepCount {
+                heldTicks += 1
+                if heldTicks >= 3 {
+                    effectiveKeep = 0
+                    heldBytes = 0
+                    heldTicks = 0
+                }
+            } else {
+                heldBytes = keepCount
+                heldTicks = 1
+            }
+        } else {
+            heldBytes = 0
+            heldTicks = 0
+        }
+
+        guard effectiveKeep < receiveBuffer.count else { return }  // 全是不完整序列，等下一包
+
+        let flushCount = receiveBuffer.count - effectiveKeep
+        let data = receiveBuffer.subdata(in: 0..<flushCount)
+        if effectiveKeep > 0 {
+            receiveBuffer = Data(receiveBuffer.subdata(in: flushCount..<receiveBuffer.count))
+        } else {
+            receiveBuffer = Data()
+        }
         let timestamp = Date()
         DispatchQueue.main.async {
             self.onDataReceived?(data, timestamp)
             self.delegate?.serialPortDidReceive(data: data, timestamp: timestamp)
         }
+    }
+
+    /// 返回缓冲区尾部可能构成不完整多字节序列的字节数（0 = 尾部完整）
+    /// 同时考虑 UTF-8（2-4字节）与 GBK（双字节）编码，任一视角可能不完整即保留。
+    private func trailingIncompleteCount(_ data: Data) -> Int {
+        let bytes = [UInt8](data)
+        let n = bytes.count
+        guard n > 0 else { return 0 }
+
+        var keep = 0
+
+        // --- UTF-8 视角：从尾部找 continuation 链 ---
+        var i = n - 1
+        var cont = 0
+        while i >= 0 && (bytes[i] & 0xC0) == 0x80 {
+            cont += 1
+            i -= 1
+        }
+        if i >= 0 {
+            let lead = bytes[i]
+            let expectedCont: Int
+            if lead & 0xE0 == 0xC0 { expectedCont = 1 }        // 2字节
+            else if lead & 0xF0 == 0xE0 { expectedCont = 2 }   // 3字节
+            else if lead & 0xF8 == 0xF0 { expectedCont = 3 }   // 4字节
+            else { expectedCont = 0 }
+            if cont < expectedCont {
+                keep = cont + 1
+                // 扩展：若 lead 前面的字节可能是 GBK 首字节（0x81-0xFE 且非 UTF-8 续字节），
+                // 则它可能是这个"UTF-8 首字节"的 GBK 尾字节，一并保留避免拆散 GBK 字符
+                if i > 0 {
+                    let prev = bytes[i - 1]
+                    if prev >= 0x81 && prev <= 0xFE && (prev & 0xC0) != 0x80 {
+                        keep += 1
+                    }
+                }
+            }
+        }
+
+        // --- GBK 视角：尾部单字节可能是孤立 GBK 首字节（缺尾字节） ---
+        if keep == 0 {
+            let last = bytes[n - 1]
+            if last >= 0x81 && last <= 0xFE {
+                // 前一个字节也是 0x81-0xFE 则构成完整 GBK 双字节，不保留
+                if n == 1 || !(bytes[n - 2] >= 0x81 && bytes[n - 2] <= 0xFE) {
+                    keep = 1
+                }
+            }
+        }
+
+        return keep
     }
 
     private func startHealthCheck() {
