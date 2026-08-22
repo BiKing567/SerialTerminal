@@ -420,7 +420,9 @@ struct ContentView: View {
     @AppStorage("terminalFontSize") private var fontSize: Double = 13
     @State private var eventMonitor: Any? = nil
     @State private var baseScale: Double = 13
-    
+    @ObservedObject private var updater = Updater.shared
+    @AppStorage("autoUpdateEnabled") private var autoUpdateEnabled: Bool = true
+
     var body: some View {
         VStack(spacing: 0) {
             connectionToolbar
@@ -430,6 +432,12 @@ struct ContentView: View {
             sendPanel
         }
         .frame(minWidth: 700, minHeight: 500)
+        .overlay(alignment: .bottomTrailing) {
+            if updater.showHUD {
+                UpdateHUD(updater: updater)
+                    .padding(16)
+            }
+        }
         .onAppear {
             viewModel.refreshPorts()
             baseScale = fontSize
@@ -450,6 +458,11 @@ struct ContentView: View {
                     return nil
                 }
                 return event
+            }
+            if autoUpdateEnabled {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                    Updater.shared.checkForUpdates(auto: true)
+                }
             }
         }
         .onDisappear {
@@ -733,6 +746,24 @@ struct SettingsView: View {
                         Text(enc.label).tag(enc)
                     }
                 }
+
+                Section("更新") {
+                    Toggle("启动时自动检查更新", isOn: Binding(
+                        get: { UserDefaults.standard.object(forKey: "autoUpdateEnabled") as? Bool ?? true },
+                        set: { UserDefaults.standard.set($0, forKey: "autoUpdateEnabled") }
+                    ))
+                    HStack {
+                        Text("当前版本 v\(Updater.shared.currentVersion)")
+                            .foregroundColor(.secondary)
+                        Spacer()
+                        Button("检查更新") {
+                            dismiss()
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                                Updater.shared.checkForUpdates(auto: false)
+                            }
+                        }
+                    }
+                }
             }
             .formStyle(.grouped)
             .frame(width: 300)
@@ -745,6 +776,74 @@ struct SettingsView: View {
             }
         }
         .padding(24)
-        .frame(width: 400, height: 320)
+        .frame(width: 400, height: 450)
+    }
+}
+
+struct UpdateHUD: View {
+    @ObservedObject var updater: Updater
+
+    var body: some View {
+        VStack(spacing: 10) {
+            switch updater.state {
+            case .checking:
+                HStack(spacing: 8) {
+                    ProgressView().controlSize(.small)
+                    Text("检查更新中...")
+                }
+            case .upToDate:
+                Label("已是最新版本 v\(updater.currentVersion)", systemImage: "checkmark.circle")
+                    .foregroundColor(.green)
+            case .available(let v):
+                Label("发现新版本 v\(v)", systemImage: "arrow.down.circle")
+                    .font(.headline)
+                Text("当前 v\(updater.currentVersion) → 新版本 v\(v)")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                HStack(spacing: 12) {
+                    Button("稍后") { updater.dismiss() }
+                    Button("立即更新") { updater.startUpdate() }
+                        .keyboardShortcut(.defaultAction)
+                }
+            case .downloading:
+                Label("正在下载更新", systemImage: "arrow.down.circle")
+                    .font(.headline)
+                ProgressView(value: updater.progress)
+                HStack {
+                    Text("\(Int(updater.progress * 100))%")
+                        .font(.caption.monospacedDigit())
+                        .foregroundColor(.secondary)
+                    Spacer()
+                    Button("取消") { updater.cancelUpdate() }
+                        .controlSize(.small)
+                }
+            case .installing:
+                HStack(spacing: 8) {
+                    ProgressView().controlSize(.small)
+                    Text("安装中，即将自动重启...")
+                }
+            case .failed(let msg):
+                Label("更新失败", systemImage: "exclamationmark.triangle")
+                    .foregroundColor(.red)
+                Text(msg)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                Button("关闭") { updater.dismiss() }
+            case .idle:
+                EmptyView()
+            }
+        }
+        .padding(14)
+        .frame(width: 270)
+        .background(.regularMaterial)
+        .cornerRadius(12)
+        .shadow(radius: 8)
+        .onChange(of: updater.state) { newState in
+            if newState == .upToDate {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                    if updater.state == .upToDate { updater.dismiss() }
+                }
+            }
+        }
     }
 }
