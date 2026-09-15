@@ -57,16 +57,20 @@ class SerialPortManager: ObservableObject {
 
     private var fileDescriptor: Int32 = -1
     private var readSource: DispatchSourceRead?
-    private var readQueue: DispatchQueue?
+    private let ioQueue = DispatchQueue(label: "com.serialdebug.ioqueue", qos: .userInteractive)
     private var logQueue: DispatchQueue
     private var flushTimer: DispatchSourceTimer?
     private var healthCheckTimer: DispatchSourceTimer?
     private var staleFlushTimer: DispatchSourceTimer?
+    private var activeConnectionID: UInt64?
+    private var nextConnectionID: UInt64 = 0
+    private var logConnectionID: UInt64?
     private var receiveBuffer = Data()
-    private let bufferLock = NSLock()
     private var isDisconnecting = false
     private var heldBytes: Int = 0      // 上一次保留的字节数
     private var heldTicks: Int = 0      // 连续保留次数（1秒/次）
+    private let ioQueueKey = DispatchSpecificKey<Void>()
+    private let logQueueKey = DispatchSpecificKey<Void>()
 
     var onDataReceived: ((Data, Date) -> Void)?
     var onError: ((String) -> Void)?
@@ -74,7 +78,25 @@ class SerialPortManager: ObservableObject {
 
     init() {
         logQueue = DispatchQueue(label: "com.serialdebug.logqueue")
+        ioQueue.setSpecific(key: ioQueueKey, value: ())
+        logQueue.setSpecific(key: logQueueKey, value: ())
         refreshPorts()
+    }
+
+    private func performOnIOQueue(_ work: () -> Void) {
+        if DispatchQueue.getSpecific(key: ioQueueKey) != nil {
+            work()
+        } else {
+            ioQueue.sync(execute: work)
+        }
+    }
+
+    private func performOnLogQueue(_ work: () -> Void) {
+        if DispatchQueue.getSpecific(key: logQueueKey) != nil {
+            work()
+        } else {
+            logQueue.sync(execute: work)
+        }
     }
 
     func refreshPorts() {
@@ -112,55 +134,61 @@ class SerialPortManager: ObservableObject {
             }
         }
 
-        DispatchQueue.main.async {
-            self.availablePorts = ports.sorted { $0.path < $1.path }
+        let sortedPorts = ports.sorted { $0.path < $1.path }
+        DispatchQueue.main.async { [weak self] in
+            self?.availablePorts = sortedPorts
         }
     }
 
     func connect(to port: SerialPortInfo) {
+        let configuration = config
         disconnect()
+        performOnIOQueue {
+            self.connectOnIOQueue(to: port, configuration: configuration)
+        }
+    }
 
-        fileDescriptor = open(port.path, O_RDWR | O_NOCTTY | O_NONBLOCK)
+    private func connectOnIOQueue(to port: SerialPortInfo, configuration: SerialConfig) {
+        let fd = open(port.path, O_RDWR | O_NOCTTY | O_NONBLOCK)
 
-        guard fileDescriptor != -1 else {
-            onError?("无法打开串口: \(String(cString: strerror(errno)))")
+        guard fd != -1 else {
+            reportError("无法打开串口: \(String(cString: strerror(errno)))")
             return
         }
 
         var options = termios()
-        if tcgetattr(fileDescriptor, &options) != 0 {
-            onError?("获取串口属性失败")
-            close(fileDescriptor)
-            fileDescriptor = -1
+        if tcgetattr(fd, &options) != 0 {
+            reportError("获取串口属性失败")
+            Darwin.close(fd)
             return
         }
 
-        cfsetispeed(&options, speedConstant(for: config.baudRate))
-        cfsetospeed(&options, speedConstant(for: config.baudRate))
+        cfsetispeed(&options, speedConstant(for: configuration.baudRate))
+        cfsetospeed(&options, speedConstant(for: configuration.baudRate))
 
         options.c_cflag |= UInt(CLOCAL | CREAD)
 
         options.c_cflag &= ~UInt(PARENB)
-        switch config.parity {
+        switch configuration.parity {
         case .none: break
         case .odd: options.c_cflag |= UInt(PARODD)
         case .even: options.c_cflag |= UInt(PARENB)
         }
 
         options.c_cflag &= ~UInt(CSIZE)
-        switch config.dataBits {
+        switch configuration.dataBits {
         case 5: options.c_cflag |= UInt(CS5)
         case 6: options.c_cflag |= UInt(CS6)
         case 7: options.c_cflag |= UInt(CS7)
         default: options.c_cflag |= UInt(CS8)
         }
 
-        switch config.stopBits {
+        switch configuration.stopBits {
         case 2: options.c_cflag |= UInt(CSTOPB)
         default: options.c_cflag &= ~UInt(CSTOPB)
         }
 
-        switch config.flowControl {
+        switch configuration.flowControl {
         case .hardware: options.c_cflag |= UInt(CRTSCTS)
         case .software:
             options.c_iflag |= UInt(IXON | IXOFF | IXANY)
@@ -175,110 +203,150 @@ class SerialPortManager: ObservableObject {
         options.c_cc.16 = 0
         options.c_cc.17 = 1
 
-        if tcsetattr(fileDescriptor, TCSANOW, &options) != 0 {
-            onError?("设置串口属性失败")
-            close(fileDescriptor)
-            fileDescriptor = -1
+        if tcsetattr(fd, TCSANOW, &options) != 0 {
+            reportError("设置串口属性失败")
+            Darwin.close(fd)
             return
         }
 
-        setDTR(true)
-        setRTS(true)
+        setDTROnIOQueue(fd, enabled: true)
+        setRTSOnIOQueue(fd, enabled: true)
 
-        tcflush(fileDescriptor, TCIOFLUSH)
+        tcflush(fd, TCIOFLUSH)
 
-        receiveBuffer = Data()
-        heldBytes = 0
-        heldTicks = 0
-
-        flushTimer = DispatchSource.makeTimerSource(queue: logQueue)
-        flushTimer?.setEventHandler { [weak self] in
-            self?.flushCompleteLines()
+        let readFD = dup(fd)
+        guard readFD != -1 else {
+            reportError("无法创建串口读取通道")
+            Darwin.close(fd)
+            return
         }
 
-        // Start with distant future - won't fire until data arrives
-        flushTimer?.schedule(deadline: .distantFuture, repeating: .never)
-        flushTimer?.resume()
+        nextConnectionID &+= 1
+        let connectionID = nextConnectionID
+        fileDescriptor = fd
+        activeConnectionID = connectionID
+        isDisconnecting = false
+        startLogTimers(connectionID: connectionID)
 
-        staleFlushTimer = DispatchSource.makeTimerSource(queue: logQueue)
-        staleFlushTimer?.schedule(deadline: .now() + 1, repeating: .seconds(1), leeway: .milliseconds(100))
-        staleFlushTimer?.setEventHandler { [weak self] in
-            self?.flushRemaining()
+        let source = DispatchSource.makeReadSource(fileDescriptor: readFD, queue: ioQueue)
+        source.setEventHandler { [weak self] in
+            self?.readAvailableData(from: readFD, connectionID: connectionID)
         }
-        staleFlushTimer?.resume()
-
-        startHealthCheck()
-
-        readQueue = DispatchQueue(label: "com.serialdebug.readqueue", qos: .userInteractive)
-        readSource = DispatchSource.makeReadSource(fileDescriptor: fileDescriptor, queue: readQueue)
-
-        readSource?.setEventHandler { [weak self] in
-            self?.readAvailableData()
+        source.setCancelHandler {
+            _ = Darwin.close(readFD)
         }
+        readSource = source
 
-        readSource?.setCancelHandler { [weak self] in
-            if let fd = self?.fileDescriptor, fd != -1 {
-                close(fd)
-            }
-        }
+        startHealthCheck(connectionID: connectionID, fileDescriptor: fd)
+        source.resume()
 
-        readSource?.resume()
-
-        DispatchQueue.main.async {
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
             self.isConnected = true
             self.delegate?.serialPortDidConnect()
         }
     }
 
-    func disconnect() {
-        stopHealthCheck()
+    private func reportError(_ message: String) {
+        DispatchQueue.main.async { [weak self] in
+            self?.onError?(message)
+        }
+    }
 
+    private func startLogTimers(connectionID: UInt64) {
+        performOnLogQueue {
+            self.logConnectionID = connectionID
+            self.receiveBuffer.removeAll(keepingCapacity: false)
+            self.heldBytes = 0
+            self.heldTicks = 0
+
+            let flushTimer = DispatchSource.makeTimerSource(queue: self.logQueue)
+            flushTimer.setEventHandler { [weak self] in
+                guard let self, self.logConnectionID == connectionID else { return }
+                self.flushCompleteLines()
+            }
+            flushTimer.schedule(deadline: .distantFuture, repeating: .never)
+            self.flushTimer = flushTimer
+            flushTimer.resume()
+
+            let staleFlushTimer = DispatchSource.makeTimerSource(queue: self.logQueue)
+            staleFlushTimer.setEventHandler { [weak self] in
+                guard let self, self.logConnectionID == connectionID else { return }
+                self.flushRemaining()
+            }
+            staleFlushTimer.schedule(deadline: .now() + 1, repeating: .seconds(1), leeway: .milliseconds(100))
+            self.staleFlushTimer = staleFlushTimer
+            staleFlushTimer.resume()
+        }
+    }
+
+    func disconnect() {
+        performOnIOQueue {
+            self.disconnectOnIOQueue()
+        }
+    }
+
+    private func resetLogStateOnLogQueue() {
         flushTimer?.cancel()
         flushTimer = nil
-
         staleFlushTimer?.cancel()
         staleFlushTimer = nil
-
         flushRemaining(force: true)
+        logConnectionID = nil
+    }
 
-        readSource?.cancel()
+    private func disconnectOnIOQueue(notify: Bool = true, cleanLogQueue: Bool = true) {
+        let hadConnection = fileDescriptor != -1 || readSource != nil || activeConnectionID != nil
+        isDisconnecting = true
+        stopHealthCheck()
+
+        let source = readSource
         readSource = nil
-        readQueue = nil
+        activeConnectionID = nil
+        source?.cancel()
 
-        if fileDescriptor != -1 {
-            close(fileDescriptor)
-            fileDescriptor = -1
+        let fd = fileDescriptor
+        fileDescriptor = -1
+        if fd != -1 {
+            Darwin.close(fd)
+        }
+
+        if cleanLogQueue {
+            performOnLogQueue {
+                self.resetLogStateOnLogQueue()
+            }
         }
 
         isDisconnecting = false
 
-        DispatchQueue.main.async {
-            self.isConnected = false
-            self.delegate?.serialPortDidDisconnect()
+        if hadConnection && notify {
+            DispatchQueue.main.async { [weak self] in
+                guard let self else { return }
+                self.isConnected = false
+                self.delegate?.serialPortDidDisconnect()
+            }
         }
     }
 
     func send(_ data: Data) {
-        guard fileDescriptor != -1, isConnected else { return }
+        guard !data.isEmpty else { return }
 
-        data.withUnsafeBytes { buffer in
-            if let baseAddress = buffer.baseAddress {
-                let written = Darwin.write(fileDescriptor, baseAddress, buffer.count)
-                if written > 0 {
-                    DispatchQueue.main.async {
-                        self.txBytes += UInt64(written)
-                    }
+        performOnIOQueue {
+            guard let connectionID = self.activeConnectionID, self.fileDescriptor != -1 else { return }
+            let fd = self.fileDescriptor
+            let written: Int = data.withUnsafeBytes { buffer in
+                guard let baseAddress = buffer.baseAddress else { return 0 }
+                return Darwin.write(fd, baseAddress, buffer.count)
+            }
+
+            if written > 0 {
+                DispatchQueue.main.async { [weak self] in
+                    self?.txBytes += UInt64(written)
                 }
-                if written < 0 {
-                    let err = errno
-                    if err == EIO || err == EBADF || err == ENXIO {
-                        if self.isDisconnecting { return }
-                        self.isDisconnecting = true
-                        DispatchQueue.main.async {
-                            self.onDisconnectedMessage?("检测到设备被移除，已自动断开连接")
-                            self.disconnect()
-                        }
-                    }
+            } else if written < 0 {
+                let err = errno
+                if err == EIO || err == EBADF || err == ENXIO {
+                    requestDeviceDisconnect(connectionID: connectionID)
                 }
             }
         }
@@ -291,72 +359,70 @@ class SerialPortManager: ObservableObject {
     }
 
     func setDTR(_ enabled: Bool) {
-        guard fileDescriptor != -1 else { return }
+        performOnIOQueue {
+            guard self.fileDescriptor != -1 else { return }
+            self.setDTROnIOQueue(self.fileDescriptor, enabled: enabled)
+        }
+    }
+
+    private func setDTROnIOQueue(_ fd: Int32, enabled: Bool) {
         var bits: Int32 = 0
-        if ioctl(fileDescriptor, UInt(TIOCMGET), &bits) != 0 { return }
+        if ioctl(fd, UInt(TIOCMGET), &bits) != 0 { return }
         if enabled { bits |= Int32(TIOCM_DTR) } else { bits &= ~Int32(TIOCM_DTR) }
-        _ = ioctl(fileDescriptor, UInt(TIOCMSET), &bits)
+        _ = ioctl(fd, UInt(TIOCMSET), &bits)
     }
 
     func setRTS(_ enabled: Bool) {
-        guard fileDescriptor != -1 else { return }
-        var bits: Int32 = 0
-        if ioctl(fileDescriptor, UInt(TIOCMGET), &bits) != 0 { return }
-        if enabled { bits |= Int32(TIOCM_RTS) } else { bits &= ~Int32(TIOCM_RTS) }
-        _ = ioctl(fileDescriptor, UInt(TIOCMSET), &bits)
+        performOnIOQueue {
+            guard self.fileDescriptor != -1 else { return }
+            self.setRTSOnIOQueue(self.fileDescriptor, enabled: enabled)
+        }
     }
 
-    private func readAvailableData() {
-        guard !isDisconnecting else { return }
+    private func setRTSOnIOQueue(_ fd: Int32, enabled: Bool) {
+        var bits: Int32 = 0
+        if ioctl(fd, UInt(TIOCMGET), &bits) != 0 { return }
+        if enabled { bits |= Int32(TIOCM_RTS) } else { bits &= ~Int32(TIOCM_RTS) }
+        _ = ioctl(fd, UInt(TIOCMSET), &bits)
+    }
+
+    private func readAvailableData(from fd: Int32, connectionID: UInt64) {
+        guard activeConnectionID == connectionID, fileDescriptor != -1, !isDisconnecting else { return }
         var buffer = [UInt8](repeating: 0, count: 4096)
-        let bytesRead = read(fileDescriptor, &buffer, buffer.count)
+        let bytesRead = Darwin.read(fd, &buffer, buffer.count)
 
         if bytesRead > 0 {
             let data = Data(buffer[0..<bytesRead])
-            DispatchQueue.main.async {
-                self.rxBytes += UInt64(bytesRead)
+            DispatchQueue.main.async { [weak self] in
+                self?.rxBytes += UInt64(bytesRead)
             }
-            bufferLock.lock()
-            receiveBuffer.append(data)
-            bufferLock.unlock()
 
-            // Debounce: reset the flush timer
-            flushTimer?.schedule(deadline: .now() + .milliseconds(200), repeating: .never)
-
-
-            // Flush complete lines while holding the lock once
-            flushCompleteLines()
+            logQueue.async { [weak self] in
+                guard let self, self.logConnectionID == connectionID else { return }
+                self.receiveBuffer.append(data)
+                self.flushCompleteLines()
+                if !self.receiveBuffer.isEmpty {
+                    self.flushTimer?.schedule(deadline: .now() + .milliseconds(200), repeating: .never)
+                }
+            }
         } else if bytesRead == 0 {
             // EOF - device disconnected
-            isDisconnecting = true
-            DispatchQueue.main.async {
-                self.onDisconnectedMessage?("检测到设备被移除，已自动断开连接")
-                self.disconnect()
-            }
+            requestDeviceDisconnect(connectionID: connectionID)
         } else if bytesRead < 0 {
             let err = errno
             if err == EAGAIN || err == EWOULDBLOCK {
                 return
             }
             if err == EIO || err == EBADF || err == ENXIO {
-                isDisconnecting = true
-                DispatchQueue.main.async {
-                    self.onDisconnectedMessage?("检测到设备被移除，已自动断开连接")
-                    self.disconnect()
-                }
+                requestDeviceDisconnect(connectionID: connectionID)
             } else {
-                DispatchQueue.main.async {
-                    self.onError?("读取错误: \(String(cString: strerror(err)))")
-                }
+                reportError("读取错误: \(String(cString: strerror(err)))")
             }
         }
     }
 
     /// Flush all complete lines (data ending with \n or \r) from the buffer
     private func flushCompleteLines() {
-        bufferLock.lock()
-        defer { bufferLock.unlock() }
-
         var lines: [Data] = []
         while let idx = receiveBuffer.firstIndex(where: { $0 == 10 || $0 == 13 }) {
             let isCR = receiveBuffer[idx] == 13
@@ -374,7 +440,8 @@ class SerialPortManager: ObservableObject {
 
         for line in lines {
             let timestamp = Date()
-            DispatchQueue.main.async {
+            DispatchQueue.main.async { [weak self] in
+                guard let self else { return }
                 self.onDataReceived?(line, timestamp)
                 self.delegate?.serialPortDidReceive(data: line, timestamp: timestamp)
             }
@@ -383,8 +450,6 @@ class SerialPortManager: ObservableObject {
 
     /// Flush remaining data (no newline) - called by the stale-data fallback timer
     private func flushRemaining(force: Bool = false) {
-        bufferLock.lock()
-        defer { bufferLock.unlock() }
         guard !receiveBuffer.isEmpty else {
             heldBytes = 0
             heldTicks = 0
@@ -424,7 +489,8 @@ class SerialPortManager: ObservableObject {
             receiveBuffer = Data()
         }
         let timestamp = Date()
-        DispatchQueue.main.async {
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
             self.onDataReceived?(data, timestamp)
             self.delegate?.serialPortDidReceive(data: data, timestamp: timestamp)
         }
@@ -480,23 +546,39 @@ class SerialPortManager: ObservableObject {
         return keep
     }
 
-    private func startHealthCheck() {
+    private func requestDeviceDisconnect(connectionID: UInt64) {
+        guard activeConnectionID == connectionID, !isDisconnecting else { return }
+        isDisconnecting = true
+        DispatchQueue.main.async { [weak self] in
+            self?.handleDeviceDisconnect(connectionID: connectionID)
+        }
+    }
+
+    private func handleDeviceDisconnect(connectionID: UInt64) {
+        performOnIOQueue {
+            guard self.activeConnectionID == connectionID else { return }
+            DispatchQueue.main.async { [weak self] in
+                self?.onDisconnectedMessage?("检测到设备被移除，已自动断开连接")
+            }
+            self.disconnectOnIOQueue()
+        }
+    }
+
+    private func startHealthCheck(connectionID: UInt64, fileDescriptor: Int32) {
         stopHealthCheck()
-        let timer = DispatchSource.makeTimerSource(queue: logQueue)
+        let timer = DispatchSource.makeTimerSource(queue: ioQueue)
         timer.schedule(deadline: .now() + 2, repeating: .seconds(2))
         timer.setEventHandler { [weak self] in
-            guard let self = self, self.fileDescriptor != -1 else { return }
+            guard let self,
+                  self.activeConnectionID == connectionID,
+                  self.fileDescriptor == fileDescriptor,
+                  !self.isDisconnecting else { return }
             var temp = termios()
-            let result = tcgetattr(self.fileDescriptor, &temp)
+            let result = tcgetattr(fileDescriptor, &temp)
             if result != 0 {
                 let err = errno
                 if err == EIO || err == EBADF || err == ENODEV || err == ENXIO {
-                    if self.isDisconnecting { return }
-                    self.isDisconnecting = true
-                    DispatchQueue.main.async {
-                        self.onDisconnectedMessage?("检测到设备被移除，已自动断开连接")
-                        self.disconnect()
-                    }
+                    self.requestDeviceDisconnect(connectionID: connectionID)
                 }
             }
         }
@@ -528,6 +610,17 @@ class SerialPortManager: ObservableObject {
     }
 
     deinit {
-        disconnect()
+        if DispatchQueue.getSpecific(key: logQueueKey) != nil {
+            resetLogStateOnLogQueue()
+            ioQueue.sync {
+                disconnectOnIOQueue(notify: false, cleanLogQueue: false)
+            }
+        } else if DispatchQueue.getSpecific(key: ioQueueKey) != nil {
+            disconnectOnIOQueue(notify: false)
+        } else {
+            performOnIOQueue {
+                self.disconnectOnIOQueue(notify: false)
+            }
+        }
     }
 }

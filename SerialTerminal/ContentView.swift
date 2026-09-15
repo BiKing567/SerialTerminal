@@ -110,6 +110,16 @@ class TerminalViewModel: ObservableObject {
             ))
         }
 
+        serialManager.$availablePorts
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] ports in
+                guard let self,
+                      let selectedPort = self.selectedPort,
+                      !ports.contains(selectedPort) else { return }
+                self.selectedPort = nil
+            }
+            .store(in: &cancellables)
+
         serialManager.objectWillChange
             .sink { [weak self] _ in
                 self?.objectWillChange.send()
