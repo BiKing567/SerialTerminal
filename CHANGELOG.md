@@ -40,6 +40,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.7.1] - 2026-09-15
+
+### Fixed
+- 修复点击左上角关闭窗口时可能触发 `NSWindow` 重复释放，导致应用意外退出的问题
+- 明确窗口关闭时的 AppKit 生命周期管理，避免关闭窗口后的对象释放竞态
+
 ## [1.0.1] - 2026-06-01
 
 ### Changed
