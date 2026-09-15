@@ -16,6 +16,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             styleMask: [.titled, .closable, .miniaturizable, .resizable],
             backing: .buffered, defer: false
         )
+        window.isReleasedWhenClosed = false
         window.center()
         window.title = "Serial Terminal"
         window.minSize = NSSize(width: 700, height: 500)
